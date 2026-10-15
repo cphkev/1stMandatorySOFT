@@ -1,0 +1,86 @@
+$kind: http-request
+url: "{{baseUrl}}/api/cpr-name-gender"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      // Status skal være 200
+      pm.test("CPR-02: Statuskode er 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      // Begge navne skal være tekst og må ikke være tomme
+      pm.test("CPR-02: Fornavn og efternavn er udfyldt", function () {
+          const body = pm.response.json();
+
+          const nameFields = ["first_name", "last_name"];
+
+          for (const field of nameFields) {
+              pm.expect(body).to.have.property(field);
+              pm.expect(body[field]).to.be.a("string");
+
+              // Navnet må ikke være tomt eller kun indeholde mellemrum
+              pm.expect(body[field].trim().length).to.be.above(0);
+          }
+      });
+
+      // CPR skal være tekst med præcis 10 cifre
+      pm.test("CPR-02: CPR indeholder præcis 10 cifre", function () {
+          const body = pm.response.json();
+
+          pm.expect(body).to.have.property("cpr");
+          pm.expect(body.cpr).to.be.a("string");
+          pm.expect(body.cpr.length).to.equal(10);
+
+          const allowedDigits = "0123456789";
+
+          // Tjekker hvert tegn i CPR
+          for (const character of body.cpr) {
+              pm.expect(allowedDigits).to.include(character);
+          }
+      });
+
+      // De første 6 cifre skal være en mulig dato
+      pm.test("CPR-02: CPR starter med en mulig dato", function () {
+          const body = pm.response.json();
+
+          const day = Number(body.cpr.substring(0, 2));
+          const month = Number(body.cpr.substring(2, 4));
+          const year = Number(body.cpr.substring(4, 6));
+
+          pm.expect(month).to.be.within(1, 12);
+
+          const daysInMonth = [
+              31, 28, 31, 30, 31, 30,
+              31, 31, 30, 31, 30, 31
+          ];
+
+          // Tillader 29. februar, hvis året kan være et skudår
+          // De to årscifre fortæller ikke hvilket århundrede
+          if (year % 4 === 0) {
+              daysInMonth[1] = 29;
+          }
+
+          pm.expect(day).to.be.within(1, daysInMonth[month - 1]);
+      });
+
+      // Køn og CPR's sidste ciffer skal passe sammen
+      pm.test("CPR-02: Sidste ciffer passer med kønnet", function () {
+          const body = pm.response.json();
+
+          // Køn skal have en af de to tilladte værdier
+          pm.expect(body).to.have.property("gender");
+          pm.expect(body.gender).to.be.oneOf(["female", "male"]);
+
+          const lastDigit = Number(body.cpr.charAt(9));
+
+          if (body.gender === "female") {
+              // Kvinder skal have et lige sidste ciffer
+              pm.expect(lastDigit % 2).to.equal(0);
+          } else {
+              // Mænd skal have et ulige sidste ciffer
+              pm.expect(lastDigit % 2).to.equal(1);
+          }
+      });
+    language: text/javascript
+order: 1792066727116

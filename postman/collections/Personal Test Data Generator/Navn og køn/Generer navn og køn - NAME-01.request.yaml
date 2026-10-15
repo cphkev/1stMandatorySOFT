@@ -1,0 +1,56 @@
+$kind: http-request
+url: "{{baseUrl}}/api/name-gender"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      // Status skal være 200
+      pm.test("NAME-01: Statuskode er 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      // Fornavnet skal være tekst og må ikke være tomt
+      pm.test("NAME-01: Fornavn findes og er ikke tomt", function () {
+          // Henter svaret som JSON
+          const body = pm.response.json();
+
+          // Svaret skal have et felt, der hedder "first_name"
+          pm.expect(body).to.have.property("first_name");
+
+          // Fornavnet skal være en string
+          pm.expect(body.first_name).to.be.a("string");
+
+          // trim fjerner mellemrum i starten og slutningen
+          // Navnet skal stadig indeholde mindst ét tegn
+          pm.expect(body.first_name.trim().length).to.be.above(0);
+      });
+
+      // Efternavnet skal være tekst og må ikke være tomt
+      pm.test("NAME-01: Efternavn findes og er ikke tomt", function () {
+          const body = pm.response.json();
+
+          // Svaret skal have et felt, der hedder "last_name"
+          pm.expect(body).to.have.property("last_name");
+
+          // Efternavnet skal være en string
+          pm.expect(body.last_name).to.be.a("string");
+
+          // Efternavnet må ikke være tomt eller kun indeholde mellemrum
+          pm.expect(body.last_name.trim().length).to.be.above(0);
+      });
+
+      // Køn skal være female eller male
+      pm.test("NAME-01: Køn har en tilladt værdi", function () {
+          const body = pm.response.json();
+
+          // Svaret skal have et felt, der hedder "gender"
+          pm.expect(body).to.have.property("gender");
+
+          // Køn skal være en string
+          pm.expect(body.gender).to.be.a("string");
+
+          // Kun disse to værdier er tilladt
+          pm.expect(body.gender).to.be.oneOf(["female", "male"]);
+      });
+    language: text/javascript
+order: 1792065532448

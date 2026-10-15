@@ -1,0 +1,4 @@
+name: FakeInfo - Local
+values:
+  - key: baseUrl
+    value: ''

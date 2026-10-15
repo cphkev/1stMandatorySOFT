@@ -1,0 +1,89 @@
+$kind: http-request
+url: "{{baseUrl}}/api/name-gender-dob"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      // Status skal være 200
+      pm.test("NAME-02: Statuskode er 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      // Begge navne skal være tekst og må ikke være tomme
+      pm.test("NAME-02: Fornavn og efternavn er udfyldt", function () {
+          const body = pm.response.json();
+
+          // Tjekker begge navnefelter med samme regler
+          const nameFields = ["first_name", "last_name"];
+
+          for (const field of nameFields) {
+              pm.expect(body).to.have.property(field);
+              pm.expect(body[field]).to.be.a("string");
+
+              // Navnet må ikke være tomt eller kun indeholde mellemrum
+              pm.expect(body[field].trim().length).to.be.above(0);
+          }
+      });
+
+      // Køn skal være female eller male
+      pm.test("NAME-02: Køn har en tilladt værdi", function () {
+          const body = pm.response.json();
+
+          pm.expect(body).to.have.property("gender");
+          pm.expect(body.gender).to.be.oneOf(["female", "male"]);
+      });
+
+      // Fødselsdato skal have formatet YYYY-MM-DD og være gyldig
+      pm.test("NAME-02: Fødselsdato har korrekt format og er gyldig", function () {
+          const body = pm.response.json();
+
+          pm.expect(body).to.have.property("date_of_birth");
+          pm.expect(body.date_of_birth).to.be.a("string");
+
+          const dob = body.date_of_birth;
+
+          // Datoen skal have 10 tegn og bindestreger på de rigtige pladser
+          pm.expect(dob.length).to.equal(10);
+          pm.expect(dob.charAt(4)).to.equal("-");
+          pm.expect(dob.charAt(7)).to.equal("-");
+
+          // Samler år, måned og dag uden bindestregerne
+          const digits = dob.substring(0, 4)
+              + dob.substring(5, 7)
+              + dob.substring(8, 10);
+
+          // Alle øvrige tegn skal være cifre
+          const allowedDigits = "0123456789";
+
+          for (const character of digits) {
+              pm.expect(allowedDigits).to.include(character);
+          }
+
+          // Laver datoens dele om til tal
+          const year = Number(dob.substring(0, 4));
+          const month = Number(dob.substring(5, 7));
+          const day = Number(dob.substring(8, 10));
+
+          pm.expect(year).to.be.within(1, 9999);
+          pm.expect(month).to.be.within(1, 12);
+
+          // Antal dage fra januar til december
+          const daysInMonth = [
+              31, 28, 31, 30, 31, 30,
+              31, 31, 30, 31, 30, 31
+          ];
+
+          // Skudår er delelige med 4
+          // Århundreder skal også være delelige med 400
+          const isLeapYear = year % 4 === 0
+              && (year % 100 !== 0 || year % 400 === 0);
+
+          if (isLeapYear) {
+              daysInMonth[1] = 29;
+          }
+
+          // Dagen skal passe til måneden og året
+          pm.expect(day).to.be.within(1, daysInMonth[month - 1]);
+      });
+    language: text/javascript
+order: 2169321209383756
