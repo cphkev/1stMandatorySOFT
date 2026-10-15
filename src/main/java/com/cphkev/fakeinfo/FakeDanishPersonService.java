@@ -36,13 +36,39 @@ public class FakeDanishPersonService {
         JsonNode root = mapper.readTree(new ClassPathResource("person-names.json").getInputStream());
 
         this.firstNames = new ArrayList<>();
-        for (JsonNode node : root.get("first_names")) {
-            this.firstNames.add(new NameRecord(node.get("name").asText(), node.get("gender").asText()));
+        this.lastNames = new ArrayList<>();
+
+        JsonNode persons = root.path("persons");
+        if (persons.isArray()) {
+            for (JsonNode node : persons) {
+                JsonNode name = node.get("name");
+                JsonNode surname = node.get("surname");
+                JsonNode gender = node.get("gender");
+                if (name != null && surname != null && gender != null) {
+                    this.firstNames.add(new NameRecord(name.asText(), gender.asText()));
+                    if (!this.lastNames.contains(surname.asText())) {
+                        this.lastNames.add(surname.asText());
+                    }
+                }
+            }
+        } else {
+            JsonNode firstNameNodes = root.path("first_names");
+            if (firstNameNodes.isArray()) {
+                for (JsonNode node : firstNameNodes) {
+                    this.firstNames.add(new NameRecord(node.path("name").asText(), node.path("gender").asText()));
+                }
+            }
+
+            JsonNode lastNameNodes = root.path("last_names");
+            if (lastNameNodes.isArray()) {
+                for (JsonNode node : lastNameNodes) {
+                    this.lastNames.add(node.asText());
+                }
+            }
         }
 
-        this.lastNames = new ArrayList<>();
-        for (JsonNode node : root.get("last_names")) {
-            this.lastNames.add(node.asText());
+        if (this.firstNames.isEmpty() || this.lastNames.isEmpty()) {
+            throw new IllegalStateException("person-names.json must contain usable person names");
         }
 
         this.postals = loadPostals();
@@ -50,7 +76,7 @@ public class FakeDanishPersonService {
     }
 
     private List<PostalRecord> loadPostals() throws IOException {
-        Pattern pattern = Pattern.compile("\\((\\d+),'([^']+)'\\)");
+        Pattern pattern = Pattern.compile("\\('([^']+)'\\s*,\\s*'([^']+)'\\)");
         List<PostalRecord> records = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
             new ClassPathResource("addresses.sql").getInputStream(), StandardCharsets.UTF_8))) {
