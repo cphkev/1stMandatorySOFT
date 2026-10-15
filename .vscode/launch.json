@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-FakeInfoApplication<fakeinfo>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.cphkev.fakeinfo.FakeInfoApplication",
+            "projectName": "fakeinfo",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
