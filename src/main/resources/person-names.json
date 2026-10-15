@@ -1,0 +1,18 @@
+{
+  "first_names": [
+    {"name": "Emma", "gender": "female"},
+    {"name": "Freja", "gender": "female"},
+    {"name": "Clara", "gender": "female"},
+    {"name": "Liam", "gender": "male"},
+    {"name": "Noah", "gender": "male"},
+    {"name": "William", "gender": "male"}
+  ],
+  "last_names": [
+    "Jensen",
+    "Nielsen",
+    "Hansen",
+    "Pedersen",
+    "Andersen",
+    "Christensen"
+  ]
+}
