@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fake Danish Person Info</title>
+    <style>
+      body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; }
+      button { margin: 0.25rem; }
+      pre { background: #f5f5f5; padding: 1rem; border-radius: 0.5rem; min-height: 18rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Fake Danish Person Info</h1>
+    <div>
+      <button data-endpoint="/api/cpr">CPR</button>
+      <button data-endpoint="/api/name-gender">Name + Gender</button>
+      <button data-endpoint="/api/name-gender-dob">Name + Gender + DOB</button>
+      <button data-endpoint="/api/cpr-name-gender">CPR + Name + Gender</button>
+      <button data-endpoint="/api/cpr-name-gender-dob">CPR + Name + Gender + DOB</button>
+      <button data-endpoint="/api/address">Address</button>
+      <button data-endpoint="/api/mobile">Mobile</button>
+      <button data-endpoint="/api/person">Person</button>
+      <button data-endpoint="/api/persons?count=5">Bulk 5 Persons</button>
+    </div>
+    <pre id="out"></pre>
+
+    <script>
+      const out = document.getElementById('out');
+      document.querySelectorAll('button[data-endpoint]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const response = await fetch(button.dataset.endpoint);
+          const payload = await response.json();
+          out.textContent = JSON.stringify(payload, null, 2);
+        });
+      });
+    </script>
+  </body>
+</html>
