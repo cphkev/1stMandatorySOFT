@@ -56,8 +56,8 @@ def create_app() -> Flask:
         count = int(request.args.get("count", "2"))
         try:
             return jsonify(service.fake_person_bulk(count))
-        except ValueError as exc:
-            return jsonify({"error": str(exc)}), 400
+        except ValueError:
+            return jsonify({"error": "count must be between 2 and 100"}), 400
 
     return app
 
@@ -66,4 +66,4 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
