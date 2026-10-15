@@ -21,7 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-public class FakeDanishPersonService {
+public final class FakeDanishPersonService {
     private static final DateTimeFormatter CPR_DATE = DateTimeFormatter.ofPattern("ddMMyy", Locale.ROOT);
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
@@ -140,7 +140,7 @@ public class FakeDanishPersonService {
     public Map<String, String> fakeCpr() {
         String gender = random.nextBoolean() ? "female" : "male";
         LocalDate dob = randomBirthDate();
-        return Map.of("cpr", cprFor(gender, dob));
+        return Map.of("cpr", cprFor(gender, dob), "gender", gender);
     }
 
     public Map<String, String> fakeNameGenderDob() {
