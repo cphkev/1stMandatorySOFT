@@ -1,9 +1,9 @@
 package com.cphkev.fakeinfo;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,12 +11,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,9 +40,9 @@ public final class FakeDanishPersonService {
                 JsonNode surname = node.get("surname");
                 JsonNode gender = node.get("gender");
                 if (name != null && surname != null && gender != null) {
-                    this.firstNames.add(new NameRecord(name.asText(), gender.asText()));
-                    if (!this.lastNames.contains(surname.asText())) {
-                        this.lastNames.add(surname.asText());
+                    this.firstNames.add(new NameRecord(name.asString(), gender.asString()));
+                    if (!this.lastNames.contains(surname.asString())) {
+                        this.lastNames.add(surname.asString());
                     }
                 }
             }
@@ -55,14 +50,14 @@ public final class FakeDanishPersonService {
             JsonNode firstNameNodes = root.path("first_names");
             if (firstNameNodes.isArray()) {
                 for (JsonNode node : firstNameNodes) {
-                    this.firstNames.add(new NameRecord(node.path("name").asText(), node.path("gender").asText()));
+                    this.firstNames.add(new NameRecord(node.path("name").asString(), node.path("gender").asString()));
                 }
             }
 
             JsonNode lastNameNodes = root.path("last_names");
             if (lastNameNodes.isArray()) {
                 for (JsonNode node : lastNameNodes) {
-                    this.lastNames.add(node.asText());
+                    this.lastNames.add(node.asString());
                 }
             }
         }
@@ -79,7 +74,7 @@ public final class FakeDanishPersonService {
         Pattern pattern = Pattern.compile("\\('([^']+)'\\s*,\\s*'([^']+)'\\)");
         List<PostalRecord> records = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-            new ClassPathResource("addresses.sql").getInputStream(), StandardCharsets.UTF_8))) {
+                new ClassPathResource("addresses.sql").getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 Matcher matcher = pattern.matcher(line);
@@ -96,9 +91,9 @@ public final class FakeDanishPersonService {
 
     public static List<String> buildPhonePrefixes() {
         List<String> prefixes = new ArrayList<>(List.of(
-            "2", "30", "31", "40", "41", "42", "50", "51", "52", "53", "60", "61", "71", "81", "91", "92", "93",
-            "342", "359", "362", "389", "398", "431", "441", "462", "466", "468", "472", "474", "476", "478",
-            "545", "556", "577", "579", "584", "627", "629", "641", "649", "658", "667", "697", "829"
+                "2", "30", "31", "40", "41", "42", "50", "51", "52", "53", "60", "61", "71", "81", "91", "92", "93",
+                "342", "359", "362", "389", "398", "431", "441", "462", "466", "468", "472", "474", "476", "478",
+                "545", "556", "577", "579", "584", "627", "629", "641", "649", "658", "667", "697", "829"
         ));
         addRange(prefixes, 344, 349);
         addRange(prefixes, 356, 357);
