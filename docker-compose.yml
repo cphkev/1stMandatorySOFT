@@ -1,0 +1,13 @@
+services:
+  db:
+    image: mysql:9.5.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./src/main/resources/addresses.sql:/docker-entrypoint-initdb.d/addresses.sql:ro
+
+volumes:
+  db_data:
