@@ -1,11 +1,10 @@
 package com.cphkev.fakeinfo;
 
-import com.cphkev.fakeinfo.entity.PostalCode;
+import com.cphkev.fakeinfo.model.PersonName;
+import com.cphkev.fakeinfo.model.PostalCode;
+import com.cphkev.fakeinfo.provider.PersonNameProvider;
 import com.cphkev.fakeinfo.repository.PostalCodeRepository;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -17,64 +16,22 @@ public final class FakeDanishPersonService {
     private static final DateTimeFormatter CPR_DATE = DateTimeFormatter.ofPattern("ddMMyy", Locale.ROOT);
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
+    private final PersonNameProvider personNameProvider;
     private final PostalCodeRepository postalCodeRepository;
 
     private final Random random = new Random();
-    private final List<NameRecord> firstNames;
-    private final List<String> lastNames;
     private final List<String> phonePrefixes;
 
-    public FakeDanishPersonService(PostalCodeRepository postalCodeRepository) throws IOException {
+    public FakeDanishPersonService(PersonNameProvider personNameProvider, PostalCodeRepository postalCodeRepository) throws IOException {
+        this.personNameProvider = personNameProvider;
         this.postalCodeRepository = postalCodeRepository;
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(new ClassPathResource("person-names.json").getInputStream());
-
-        this.firstNames = new ArrayList<>();
-        this.lastNames = new ArrayList<>();
-
-        JsonNode persons = root.path("persons");
-        if (persons.isArray()) {
-            for (JsonNode node : persons) {
-                JsonNode name = node.get("name");
-                JsonNode surname = node.get("surname");
-                JsonNode gender = node.get("gender");
-                if (name != null && surname != null && gender != null) {
-                    this.firstNames.add(new NameRecord(name.asString(), gender.asString()));
-                    if (!this.lastNames.contains(surname.asString())) {
-                        this.lastNames.add(surname.asString());
-                    }
-                }
-            }
-        } else {
-            JsonNode firstNameNodes = root.path("first_names");
-            if (firstNameNodes.isArray()) {
-                for (JsonNode node : firstNameNodes) {
-                    this.firstNames.add(new NameRecord(node.path("name").asString(), node.path("gender").asString()));
-                }
-            }
-
-            JsonNode lastNameNodes = root.path("last_names");
-            if (lastNameNodes.isArray()) {
-                for (JsonNode node : lastNameNodes) {
-                    this.lastNames.add(node.asString());
-                }
-            }
-        }
-
-        if (this.firstNames.isEmpty() || this.lastNames.isEmpty()) {
-            throw new IllegalStateException("person-names.json must contain usable person names");
-        }
 
         this.phonePrefixes = buildPhonePrefixes();
     }
 
     public static List<String> buildPhonePrefixes() {
-        List<String> prefixes = new ArrayList<>(List.of(
-                "2", "30", "31", "40", "41", "42", "50", "51", "52", "53", "60", "61", "71", "81", "91", "92", "93",
-                "342", "359", "362", "389", "398", "431", "441", "462", "466", "468", "472", "474", "476", "478",
-                "545", "556", "577", "579", "584", "627", "629", "641", "649", "658", "667", "697", "829"
-        ));
+        List<String> prefixes = new ArrayList<>(List.of("2", "30", "31", "40", "41", "42", "50", "51", "52", "53", "60", "61", "71", "81", "91", "92", "93", "342", "359", "362", "389", "398", "431", "441", "462", "466", "468", "472", "474", "476", "478", "545", "556", "577", "579", "584", "589", "627", "629", "641", "649", "658", "667", "697", "829"));
+
         addRange(prefixes, 344, 349);
         addRange(prefixes, 356, 357);
         addRange(prefixes, 365, 366);
@@ -104,12 +61,14 @@ public final class FakeDanishPersonService {
     }
 
     public Map<String, String> fakeNameGender() {
-        NameRecord first = firstNames.get(random.nextInt(firstNames.size()));
-        Map<String, String> result = new HashMap<>();
-        result.put("first_name", first.name());
-        result.put("last_name", lastNames.get(random.nextInt(lastNames.size())));
-        result.put("gender", first.gender());
-        return result;
+        List<PersonName> persons = personNameProvider.getAll();
+        PersonName person = persons.get(random.nextInt(persons.size()));
+
+        return Map.of(
+                "first_name", person.name(),
+                "last_name", person.surname(),
+                "gender", person.gender()
+        );
     }
 
     public Map<String, String> fakeCpr() {
@@ -228,8 +187,5 @@ public final class FakeDanishPersonService {
             output.append((char) ('a' + random.nextInt(26)));
         }
         return output.toString();
-    }
-
-    private record NameRecord(String name, String gender) {
     }
 }

@@ -1,6 +1,8 @@
 package com.cphkev.fakeinfo;
 
-import com.cphkev.fakeinfo.entity.PostalCode;
+import com.cphkev.fakeinfo.model.PersonName;
+import com.cphkev.fakeinfo.model.PostalCode;
+import com.cphkev.fakeinfo.provider.PersonNameProvider;
 import com.cphkev.fakeinfo.repository.PostalCodeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,7 +13,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,6 +25,9 @@ import static org.mockito.Mockito.lenient;
 class FakeDanishPersonServiceTest {
 
     @Mock
+    private PersonNameProvider personNameProvider;
+
+    @Mock
     private PostalCodeRepository postalCodeRepository;
 
     @InjectMocks
@@ -31,6 +35,13 @@ class FakeDanishPersonServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(personNameProvider.getAll())
+                .thenReturn(List.of(
+                        new PersonName("John", "Doe", "male"),
+                        new PersonName("Jane", "Smith", "female"),
+                        new PersonName("Alex", "Johnson", "male")
+                ));
+
         lenient().when(postalCodeRepository.findRandomPostalCode())
             .thenReturn(Optional.of(new PostalCode("1000", "Test Town")));
     }
@@ -145,7 +156,7 @@ class FakeDanishPersonServiceTest {
             assertThat(person.get("gender")).isIn("female", "male");
         }
     }
-/* 
+/*
     @Test // tester at navne hentes fra person-names.json
     void generatedNamesComeFromNamesFile() {
         FakeDanishPersonService service = new FakeDanishPersonService();

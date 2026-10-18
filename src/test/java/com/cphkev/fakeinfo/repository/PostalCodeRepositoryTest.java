@@ -2,7 +2,7 @@ package com.cphkev.fakeinfo.repository;
 
 import com.cphkev.fakeinfo.MySqlTestConfiguration;
 import com.cphkev.fakeinfo.Populator;
-import com.cphkev.fakeinfo.entity.PostalCode;
+import com.cphkev.fakeinfo.model.PostalCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

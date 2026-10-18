@@ -1,4 +1,4 @@
-package com.cphkev.fakeinfo.entity;
+package com.cphkev.fakeinfo.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
