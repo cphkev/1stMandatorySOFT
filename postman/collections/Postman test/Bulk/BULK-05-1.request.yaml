@@ -1,0 +1,241 @@
+$kind: http-request
+name: BULK-05
+url: "{{baseUrl}}/api/persons?count=100"
+method: GET
+queryParams:
+  count: "100"
+scripts:
+  - type: afterResponse
+    code: |-
+      // Vi bestiller 100 personer og kontrollerer hver person
+      pm.test("BULK-05: Statuskode er 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      // Bulk skal returnere et JSON-array
+      pm.test("BULK-05: Svaret er et JSON-array", function () {
+          const contentType = pm.response.headers.get("Content-Type");
+
+          pm.expect(contentType).to.be.a("string");
+          pm.expect(contentType.toLowerCase()).to.include("application/json");
+
+          const body = pm.response.json();
+
+          pm.expect(body).to.be.an("array");
+      });
+
+      // Antallet skal passe præcist med bestillingen
+      pm.test("BULK-05: Svaret indeholder præcis 100 personer", function () {
+          const body = pm.response.json();
+
+          pm.expect(body).to.be.an("array");
+          pm.expect(body.length).to.equal(100);
+      });
+
+      // Hver person skal have de nødvendige felter
+      pm.test("BULK-05: Alle personer har alle nødvendige felter", function () {
+          const body = pm.response.json();
+
+          pm.expect(body).to.be.an("array");
+          pm.expect(body.length).to.equal(100);
+
+          const personFields = [
+              "cpr",
+              "first_name",
+              "last_name",
+              "gender",
+              "date_of_birth",
+              "mobile_phone_number"
+          ];
+
+          const addressFields = [
+              "street",
+              "number",
+              "floor",
+              "door",
+              "postal_code",
+              "town"
+          ];
+
+          // Kontrollerer hver person i arrayet
+          for (const person of body) {
+              pm.expect(person).to.be.an("object");
+
+              for (const field of personFields) {
+                  pm.expect(person).to.have.property(field);
+                  pm.expect(person[field]).to.be.a("string");
+                  pm.expect(person[field].trim().length).to.be.above(0);
+              }
+
+              pm.expect(person).to.have.property("address");
+              pm.expect(person.address).to.be.an("object");
+              pm.expect(person.address).to.not.be.an("array");
+
+              for (const field of addressFields) {
+                  pm.expect(person.address).to.have.property(field);
+                  pm.expect(person.address[field]).to.be.a("string");
+                  pm.expect(person.address[field].trim().length).to.be.above(0);
+              }
+          }
+      });
+
+      // Kontrollerer indholdet af hver person i bulk-svaret
+      const persons = pm.response.json();
+
+      // Kører kun personkontrollerne, hvis svaret er et array.
+      // Den eksisterende test opdager, hvis svaret ikke er et array.
+      if (Array.isArray(persons)) {
+          const allowedPrefixes = [
+              "2",
+              "30", "31", "40", "41", "42",
+              "50", "51", "52", "53", "60", "61",
+              "71", "81", "91", "92", "93",
+
+              "342", "344", "345", "346", "347", "348", "349",
+              "356", "357", "359", "362", "365", "366", "389", "398",
+              "431", "441", "462", "466", "468", "472", "474",
+              "476", "478", "485", "486", "488", "489",
+              "493", "494", "495", "496", "498", "499",
+              "542", "543", "545", "551", "552", "556",
+              "571", "572", "573", "574", "577", "579",
+              "584", "586", "587", "589", "597", "598",
+              "627", "629", "641", "649", "658",
+              "662", "663", "664", "665", "667",
+              "692", "693", "694", "697",
+              "771", "772", "782", "783", "785", "786",
+              "788", "789", "826", "827", "829"
+          ];
+
+          for (let index = 0; index < persons.length; index++) {
+              const person = persons[index];
+
+              // Gør det tydeligt, hvilken person en eventuel fejl vedrører
+              const label = "BULK-05: Person " + (index + 1);
+
+              pm.test(label + " har gyldigt CPR og køn", function () {
+                  pm.expect(person).to.be.an("object");
+
+                  pm.expect(person.cpr).to.be.a("string");
+
+                  // Præcis ti cifre
+                  pm.expect(person.cpr).to.match(/^[0-9]{10}$/);
+
+                  pm.expect(person.gender).to.be.a("string");
+                  pm.expect(person.gender).to.be.oneOf(["female", "male"]);
+
+                  const lastDigit = Number(person.cpr.charAt(9));
+
+                  if (person.gender === "female") {
+                      pm.expect(lastDigit % 2).to.equal(0);
+                  } else {
+                      pm.expect(lastDigit % 2).to.equal(1);
+                  }
+              });
+
+              pm.test(label + " har gyldig dato, som matcher CPR", function () {
+                  pm.expect(person).to.be.an("object");
+                  pm.expect(person.date_of_birth).to.be.a("string");
+                  pm.expect(person.cpr).to.be.a("string");
+
+                  const dob = person.date_of_birth;
+
+                  // Fire cifre, bindestreg, to cifre, bindestreg og to cifre
+                  pm.expect(dob).to.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/);
+
+                  const year = Number(dob.substring(0, 4));
+                  const month = Number(dob.substring(5, 7));
+                  const day = Number(dob.substring(8, 10));
+
+                  pm.expect(year).to.be.within(1, 9999);
+                  pm.expect(month).to.be.within(1, 12);
+
+                  const daysInMonth = [
+                      31, 28, 31, 30, 31, 30,
+                      31, 31, 30, 31, 30, 31
+                  ];
+
+                  const isLeapYear = year % 4 === 0
+                      && (year % 100 !== 0 || year % 400 === 0);
+
+                  if (isLeapYear) {
+                      daysInMonth[1] = 29;
+                  }
+
+                  pm.expect(day).to.be.within(1, daysInMonth[month - 1]);
+
+                  // Omdanner YYYY-MM-DD til DDMMYY
+                  const expectedCprDate =
+                      dob.substring(8, 10)
+                      + dob.substring(5, 7)
+                      + dob.substring(2, 4);
+
+                  pm.expect(person.cpr.substring(0, 6)).to.equal(expectedCprDate);
+              });
+
+              pm.test(label + " har gyldige adresseformater", function () {
+                  pm.expect(person).to.be.an("object");
+                  pm.expect(person.address).to.be.an("object");
+
+                  const address = person.address;
+
+                  // Vejnavn: mindst ét bogstav
+                  pm.expect(address.street).to.be.a("string");
+                  pm.expect(address.street).to.match(/^\p{L}+$/u);
+
+                  // Husnummer: 1–999 med et valgfrit stort bogstav
+                  pm.expect(address.number).to.be.a("string");
+                  pm.expect(address.number).to.match(/^[0-9]+[A-Z]?$/);
+
+                  const numericPart = address.number.replace(/[A-Z]$/, "");
+
+                  pm.expect(Number(numericPart)).to.be.within(1, 999);
+
+                  // Etage: st eller 1–99
+                  pm.expect(address.floor).to.be.a("string");
+
+                  if (address.floor !== "st") {
+                      pm.expect(address.floor).to.match(/^[0-9]+$/);
+                      pm.expect(Number(address.floor)).to.be.within(1, 99);
+                  }
+
+                  // Dør: navngiven, numerisk eller bogstavformat
+                  pm.expect(address.door).to.be.a("string");
+
+                  const door = address.door;
+                  const namedDoors = ["th", "mf", "tv"];
+
+                  if (namedDoors.includes(door)) {
+                      pm.expect(door).to.be.oneOf(namedDoors);
+
+                  } else if (/^[0-9]+$/.test(door)) {
+                      pm.expect(Number(door)).to.be.within(1, 50);
+
+                  } else {
+                      pm.expect(door).to.match(/^[a-z]-?[0-9]{1,3}$/);
+                  }
+              });
+
+              pm.test(label + " har et gyldigt mobilnummer", function () {
+                  pm.expect(person).to.be.an("object");
+                  pm.expect(person.mobile_phone_number).to.be.a("string");
+
+                  const mobile = person.mobile_phone_number;
+
+                  // Præcis otte cifre
+                  pm.expect(mobile).to.match(/^[0-9]{8}$/);
+
+                  let hasAllowedPrefix = false;
+
+                  for (const prefix of allowedPrefixes) {
+                      if (mobile.startsWith(prefix)) {
+                          hasAllowedPrefix = true;
+                          break;
+                      }
+                  }
+
+                  pm.expect(hasAllowedPrefix).to.equal(true);
+              });
+          }
+      }
+    language: text/javascript
+order: 4311791954250513

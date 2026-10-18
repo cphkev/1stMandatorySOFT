@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/persons?count=-1"
+method: GET
+queryParams:
+  count: "-1"
+scripts:
+  - type: afterResponse
+    code: |-
+      // Et negativt antal personer skal afvises
+      pm.test("BULK-09: Count -1 afvises med status 400", function () {
+          pm.response.to.have.status(400);
+      });
+    language: text/javascript
+order: 4502956932074338

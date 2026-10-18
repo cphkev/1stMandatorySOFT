@@ -3,78 +3,81 @@ url: "{{baseUrl}}/api/cpr"
 method: GET
 scripts:
   - type: afterResponse
-    code: |
-      // Status skal være 200 
+    code: |-
+      // Status skal være 200
       pm.test("CPR-01: Statuskode er 200", function () {
           pm.response.to.have.status(200);
       });
 
+      // Svaret skal være JSON og indeholde ét objekt
+      pm.test("CPR-01: Svaret er et JSON-objekt", function () {
+          const contentType = pm.response.headers.get("Content-Type");
 
+          pm.expect(contentType).to.be.a("string");
+          pm.expect(contentType.toLowerCase()).to.include("application/json");
 
+          const body = pm.response.json();
+
+          pm.expect(body).to.be.an("object");
+          pm.expect(body).to.not.be.an("array");
+      });
+
+      // CPR skal være tekst med præcis 10 cifre
       pm.test("CPR-01: CPR indeholder præcis 10 cifre", function () {
           const body = pm.response.json();
 
-          // Vi skal have et "CPR" felt med
           pm.expect(body).to.have.property("cpr");
-          //det skal være string   
           pm.expect(body.cpr).to.be.a("string");
-          //længden skal være 10
           pm.expect(body.cpr.length).to.equal(10);
 
-          // CPR skal kun indeholde tal - disse tal 
           const allowedDigits = "0123456789";
 
-          //løber igennem hver karakter i CPR-strengen og tjekker om den er en gyldig cifret
+          // Kontrollerer hvert tegn i CPR
           for (const character of body.cpr) {
               pm.expect(allowedDigits).to.include(character);
           }
       });
 
-      // De første 6 cifre skal være en mulig dato
+      // De første seks cifre skal være en mulig dato
       pm.test("CPR-01: CPR starter med en mulig dato", function () {
           const body = pm.response.json();
 
-          // Deler starten af CPR op i dag, måned og år
-          // Number laver teksten om til tal
+          pm.expect(body.cpr).to.be.a("string");
+
+          // Deler CPR op i dag, måned og de to årscifre
           const day = Number(body.cpr.substring(0, 2));
           const month = Number(body.cpr.substring(2, 4));
           const year = Number(body.cpr.substring(4, 6));
 
-          // Måneden skal være mellem 1 og 12
           pm.expect(month).to.be.within(1, 12);
 
-          // Antal dage i hver måned fra januar til december
           const daysInMonth = [
               31, 28, 31, 30, 31, 30,
               31, 31, 30, 31, 30, 31
           ];
 
-          // Tillader 29. februar, hvis årstallet kan være et skudår
-          // Vi kan ikke afgøre århundredet ud fra de to årscifre
+          // Vi kender ikke århundredet.
+          // Tillader derfor 29. februar, hvis året kan være et skudår.
           if (year % 4 === 0) {
               daysInMonth[1] = 29;
           }
 
-          // Dagen skal passe til måneden
-          // Vi trækker 1 fra, fordi listens første plads er 0
           pm.expect(day).to.be.within(1, daysInMonth[month - 1]);
       });
-
-
 
       // CPR's sidste ciffer skal passe med kønnet
       pm.test("CPR-01: Sidste ciffer passer med kønnet", function () {
           const body = pm.response.json();
 
-          // Køn skal være female eller male
+          pm.expect(body).to.have.property("gender");
+          pm.expect(body.gender).to.be.a("string");
           pm.expect(body.gender).to.be.oneOf(["female", "male"]);
+          pm.expect(body.cpr).to.be.a("string");
 
-          // Henter det sidste tegn og laver det om til et tal
           const lastDigit = Number(body.cpr.charAt(9));
 
-          // Kvinder skal have et lige sidste ciffer
-          // % 2 giver resten efter division med 2
           if (body.gender === "female") {
+              // Kvinder skal have et lige sidste ciffer
               pm.expect(lastDigit % 2).to.equal(0);
           } else {
               // Mænd skal have et ulige sidste ciffer

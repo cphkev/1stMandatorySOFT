@@ -9,17 +9,28 @@ scripts:
           pm.response.to.have.status(200);
       });
 
-      // Mobilnummeret skal være tekst med præcis 8 cifre
+      // Svaret skal være JSON og indeholde ét objekt
+      pm.test("MOBILE-01: Svaret er et JSON-objekt", function () {
+          const contentType = pm.response.headers.get("Content-Type");
+
+          pm.expect(contentType).to.be.a("string");
+          pm.expect(contentType.toLowerCase()).to.include("application/json");
+
+          const body = pm.response.json();
+
+          pm.expect(body).to.be.an("object");
+          pm.expect(body).to.not.be.an("array");
+      });
+
+      // Mobilnummeret skal være tekst med præcis otte cifre
       pm.test("MOBILE-01: Mobilnummer indeholder præcis 8 cifre", function () {
           const body = pm.response.json();
 
-          // Svaret skal have feltet mobile_phone_number
           pm.expect(body).to.have.property("mobile_phone_number");
           pm.expect(body.mobile_phone_number).to.be.a("string");
 
           const mobile = body.mobile_phone_number;
 
-          // Nummeret skal have 8 tegn
           pm.expect(mobile.length).to.equal(8);
 
           const allowedDigits = "0123456789";
@@ -30,7 +41,7 @@ scripts:
           }
       });
 
-      // Mobilnummeret skal starte med et tilladt præfiks
+      // Mobilnummeret skal starte med et præfiks fra opgaven
       pm.test("MOBILE-01: Mobilnummer har et tilladt præfiks", function () {
           const body = pm.response.json();
 
@@ -38,7 +49,7 @@ scripts:
 
           const mobile = body.mobile_phone_number;
 
-          // Tilladte præfikser fra opgavebeskrivelsen
+          // Intervallerne fra opgaven er skrevet ud som enkelte præfikser
           const allowedPrefixes = [
               "2",
               "30", "31", "40", "41", "42",
@@ -60,10 +71,9 @@ scripts:
               "788", "789", "826", "827", "829"
           ];
 
-          // Vi har endnu ikke fundet et tilladt præfiks
           let hasAllowedPrefix = false;
 
-          // Undersøger om nummeret starter med et af præfikserne
+          // Undersøger, om nummeret starter med mindst ét tilladt præfiks
           for (const prefix of allowedPrefixes) {
               if (mobile.startsWith(prefix)) {
                   hasAllowedPrefix = true;
@@ -71,7 +81,6 @@ scripts:
               }
           }
 
-          // Mindst ét præfiks skal passe
           pm.expect(hasAllowedPrefix).to.equal(true);
       });
     language: text/javascript

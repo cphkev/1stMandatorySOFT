@@ -9,23 +9,32 @@ scripts:
           pm.response.to.have.status(200);
       });
 
-      // Fornavn og efternavn skal være udfyldt
-      pm.test("CPR-03: Fornavn og efternavn er udfyldt", function () {
+      // Svaret skal være JSON og indeholde ét objekt
+      pm.test("CPR-03: Svaret er et JSON-objekt", function () {
+          const contentType = pm.response.headers.get("Content-Type");
+
+          pm.expect(contentType).to.be.a("string");
+          pm.expect(contentType.toLowerCase()).to.include("application/json");
+
           const body = pm.response.json();
 
-          const nameFields = ["first_name", "last_name"];
+          pm.expect(body).to.be.an("object");
+          pm.expect(body).to.not.be.an("array");
+      });
 
-          // Tjekker begge navne med samme regler
-          for (const field of nameFields) {
+      // Begge navne skal findes og indeholde tekst
+      pm.test("CPR-03: Fornavn og efternavn er udfyldt", function () {
+          const body = pm.response.json();
+          const fields = ["first_name", "last_name"];
+
+          for (const field of fields) {
               pm.expect(body).to.have.property(field);
               pm.expect(body[field]).to.be.a("string");
-
-              // Navnet må ikke være tomt eller kun indeholde mellemrum
               pm.expect(body[field].trim().length).to.be.above(0);
           }
       });
 
-      // CPR skal være tekst med præcis 10 cifre
+      // CPR skal være tekst med præcis ti cifre
       pm.test("CPR-03: CPR indeholder præcis 10 cifre", function () {
           const body = pm.response.json();
 
@@ -35,18 +44,19 @@ scripts:
 
           const allowedDigits = "0123456789";
 
-          // Tjekker hvert tegn i CPR
           for (const character of body.cpr) {
               pm.expect(allowedDigits).to.include(character);
           }
       });
 
-      // Køn og CPR's sidste ciffer skal passe sammen
+      // CPR's sidste ciffer skal passe med kønnet
       pm.test("CPR-03: Sidste ciffer passer med kønnet", function () {
           const body = pm.response.json();
 
           pm.expect(body).to.have.property("gender");
+          pm.expect(body.gender).to.be.a("string");
           pm.expect(body.gender).to.be.oneOf(["female", "male"]);
+          pm.expect(body.cpr).to.be.a("string");
 
           const lastDigit = Number(body.cpr.charAt(9));
 
@@ -59,7 +69,7 @@ scripts:
           }
       });
 
-      // Fødselsdatoen skal være en gyldig dato i formatet YYYY-MM-DD
+      // Fødselsdatoen skal have formatet YYYY-MM-DD og eksistere i kalenderen
       pm.test("CPR-03: Fødselsdato har korrekt format og er gyldig", function () {
           const body = pm.response.json();
 
@@ -68,40 +78,35 @@ scripts:
 
           const dob = body.date_of_birth;
 
-          // Datoen skal have 10 tegn
           pm.expect(dob.length).to.equal(10);
-
-          // Bindestregerne skal stå mellem år, måned og dag
           pm.expect(dob.charAt(4)).to.equal("-");
           pm.expect(dob.charAt(7)).to.equal("-");
 
-          // Samler tegnene, der skal være cifre
-          const digits = dob.substring(0, 4)
-              + dob.substring(5, 7)
-              + dob.substring(8, 10);
+          const yearText = dob.substring(0, 4);
+          const monthText = dob.substring(5, 7);
+          const dayText = dob.substring(8, 10);
 
+          // Kontrollerer, at datoens øvrige tegn er cifre
           const allowedDigits = "0123456789";
+          const dateDigits = yearText + monthText + dayText;
 
-          for (const character of digits) {
+          for (const character of dateDigits) {
               pm.expect(allowedDigits).to.include(character);
           }
 
-          // Deler datoen op og laver delene om til tal
-          const year = Number(dob.substring(0, 4));
-          const month = Number(dob.substring(5, 7));
-          const day = Number(dob.substring(8, 10));
+          const year = Number(yearText);
+          const month = Number(monthText);
+          const day = Number(dayText);
 
           pm.expect(year).to.be.within(1, 9999);
           pm.expect(month).to.be.within(1, 12);
 
-          // Antal dage fra januar til december
           const daysInMonth = [
               31, 28, 31, 30, 31, 30,
               31, 31, 30, 31, 30, 31
           ];
 
-          // Skudår er delelige med 4
-          // Århundreder skal også være delelige med 400
+          // Kontrollerer skudår ud fra det fulde årstal
           const isLeapYear = year % 4 === 0
               && (year % 100 !== 0 || year % 400 === 0);
 
@@ -109,26 +114,26 @@ scripts:
               daysInMonth[1] = 29;
           }
 
-          // Dagen skal findes i den valgte måned
           pm.expect(day).to.be.within(1, daysInMonth[month - 1]);
       });
 
-      // Datoen i CPR skal være den samme som fødselsdatoen
+      // CPR og fødselsdato skal beskrive samme dato
       pm.test("CPR-03: CPR matcher fødselsdatoen", function () {
           const body = pm.response.json();
 
+          pm.expect(body.cpr).to.be.a("string");
+          pm.expect(body.date_of_birth).to.be.a("string");
+
           const dob = body.date_of_birth;
 
-          // Fødselsdatoen bruger YYYY-MM-DD
-          // CPR bruger ddMMyy
+          // Fødselsdatoen er YYYY-MM-DD
           const day = dob.substring(8, 10);
           const month = dob.substring(5, 7);
-          const shortYear = dob.substring(2, 4);
+          const year = dob.substring(2, 4);
 
-          // Bygger den dato, vi forventer i starten af CPR
-          const expectedCprDate = day + month + shortYear;
+          // CPR skal starte med DDMMYY
+          const expectedCprDate = day + month + year;
 
-          // Sammenligner med de første 6 cifre i CPR
           pm.expect(body.cpr.substring(0, 6)).to.equal(expectedCprDate);
       });
     language: text/javascript

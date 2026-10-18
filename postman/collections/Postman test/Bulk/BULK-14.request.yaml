@@ -1,0 +1,34 @@
+$kind: http-request
+url: "{{baseUrl}}/api/persons?count=100"
+method: GET
+queryParams:
+  count: "100"
+scripts:
+  - type: afterResponse
+    code: |-
+      // Tilfældighed: 100 personer må ikke alle være ens
+            pm.test("BULK-17: Statuskode er 200", function () {
+                pm.response.to.have.status(200);
+            });
+       
+            pm.test("BULK-17: CPR-numrene er ikke alle ens", function () {
+                const persons = pm.response.json();
+       
+                pm.expect(persons).to.be.an("array");
+                pm.expect(persons.length).to.equal(100);
+       
+                const uniqueCprs = new Set(persons.map(person => person.cpr));
+       
+                // Mere end ét forskelligt CPR viser, at generatoren varierer
+                pm.expect(uniqueCprs.size).to.be.above(1);
+            });
+       
+            pm.test("BULK-17: Adresserne er ikke alle ens", function () {
+                const persons = pm.response.json();
+       
+                const uniqueStreets = new Set(persons.map(person => person.address.street));
+       
+                pm.expect(uniqueStreets.size).to.be.above(1);
+            });
+    language: text/javascript
+order: 4503589593563761

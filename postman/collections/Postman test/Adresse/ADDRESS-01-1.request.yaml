@@ -1,0 +1,149 @@
+$kind: http-request
+name: ADDRESS-01
+url: "{{baseUrl}}/api/address"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      // Status skal være 200
+      pm.test("ADDRESS-01: Statuskode er 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      // Svaret skal være JSON og indeholde ét objekt
+      pm.test("ADDRESS-01: Svaret er et JSON-objekt", function () {
+          const contentType = pm.response.headers.get("Content-Type");
+
+          pm.expect(contentType).to.be.a("string");
+          pm.expect(contentType.toLowerCase()).to.include("application/json");
+
+          const body = pm.response.json();
+
+          pm.expect(body).to.be.an("object");
+          pm.expect(body).to.not.be.an("array");
+      });
+
+      // Alle adressefelter skal findes og indeholde tekst
+      pm.test("ADDRESS-01: Alle adressefelter er udfyldt", function () {
+          const body = pm.response.json();
+
+          const fields = [
+              "street",
+              "number",
+              "floor",
+              "door",
+              "postal_code",
+              "town"
+          ];
+
+          for (const field of fields) {
+              pm.expect(body).to.have.property(field);
+              pm.expect(body[field]).to.be.a("string");
+              pm.expect(body[field].trim().length).to.be.above(0);
+          }
+      });
+
+      // Vejnavnet skal bestå af bogstaver
+      pm.test("ADDRESS-01: Vejnavnet indeholder kun bogstaver", function () {
+          const body = pm.response.json();
+
+          pm.expect(body.street).to.be.a("string");
+          pm.expect(body.street.length).to.be.above(0);
+
+          // Unicode-bogstaver accepteres, også fx æ, ø og å.
+          // Dette er vores fortolkning af opgavens "alphabetic characters".
+          const onlyLetters = /^\p{L}+$/u;
+
+          pm.expect(body.street).to.match(onlyLetters);
+      });
+
+      // Husnummeret skal være 1–999 med et valgfrit stort bogstav
+      pm.test("ADDRESS-01: Husnummer har gyldigt format og værdi", function () {
+          const body = pm.response.json();
+
+          pm.expect(body.number).to.be.a("string");
+
+          // En eller flere cifre efterfulgt af højst ét stort bogstav.
+          // Vi bruger A–Z som bogstavregel her.
+          const numberFormat = /^[0-9]+[A-Z]?$/;
+
+          pm.expect(body.number).to.match(numberFormat);
+
+          // Fjerner et eventuelt bogstav, før tallet kontrolleres
+          const numericPart = body.number.replace(/[A-Z]$/, "");
+          const houseNumber = Number(numericPart);
+
+          pm.expect(houseNumber).to.be.within(1, 999);
+      });
+
+      // Etagen skal være stue eller et tal fra 1 til 99
+      pm.test("ADDRESS-01: Etage er st eller mellem 1 og 99", function () {
+          const body = pm.response.json();
+
+          pm.expect(body.floor).to.be.a("string");
+
+          if (body.floor === "st") {
+              pm.expect(body.floor).to.equal("st");
+          } else {
+              // Andre etager skal kun indeholde cifre
+              pm.expect(body.floor).to.match(/^[0-9]+$/);
+
+              const floorNumber = Number(body.floor);
+
+              pm.expect(floorNumber).to.be.within(1, 99);
+          }
+      });
+
+      // Døren skal passe til en af opgavens tilladte varianter
+      pm.test("ADDRESS-01: Dør har et tilladt format", function () {
+          const body = pm.response.json();
+
+          pm.expect(body.door).to.be.a("string");
+
+          const door = body.door;
+          const namedDoors = ["th", "mf", "tv"];
+
+          if (namedDoors.includes(door)) {
+              // Navngivne døre
+              pm.expect(door).to.be.oneOf(namedDoors);
+
+          } else if (/^[0-9]+$/.test(door)) {
+              // En rent numerisk dør skal være mellem 1 og 50
+              const doorNumber = Number(door);
+
+              pm.expect(doorNumber).to.be.within(1, 50);
+
+          } else {
+              // Et lille bogstav, eventuelt en bindestreg,
+              // og derefter mellem ét og tre cifre.
+              // Vi bruger a–z som bogstavregel her.
+              const letterDoorFormat = /^[a-z]-?[0-9]{1,3}$/;
+
+              pm.expect(door).to.match(letterDoorFormat);
+          }
+      });
+
+
+      // Indsæt i ADDRESS-01 (brug "body"), og i PERSON-01 (brug "body.address")
+      pm.test("ADDRESS-01: Postnummer er fire cifre", function () {
+          const body = pm.response.json();
+       
+          pm.expect(body.postal_code).to.be.a("string");
+          pm.expect(body.postal_code).to.match(/^[0-9]{4}$/);
+       
+          pm.expect(body.town).to.be.a("string");
+          pm.expect(body.town.trim().length).to.be.above(0);
+      });
+       
+      // Ingen foranstillede nuller i husnummer og dør (hvis gruppen aftaler det)
+      pm.test("ADDRESS-01: Husnummer og numerisk dør har ingen foranstillet nul", function () {
+          const body = pm.response.json();
+       
+          pm.expect(body.number).to.match(/^[1-9]/);
+       
+          if (/^[0-9]+$/.test(body.door)) {
+              pm.expect(body.door).to.match(/^[1-9]/);
+          }
+      });
+    language: text/javascript
+order: 1792321746795
