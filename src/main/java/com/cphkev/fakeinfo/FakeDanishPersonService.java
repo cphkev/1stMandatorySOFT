@@ -1,32 +1,32 @@
 package com.cphkev.fakeinfo;
 
+import com.cphkev.fakeinfo.entity.PostalCode;
+import com.cphkev.fakeinfo.repository.PostalCodeRepository;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public final class FakeDanishPersonService {
     private static final DateTimeFormatter CPR_DATE = DateTimeFormatter.ofPattern("ddMMyy", Locale.ROOT);
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
+    private final PostalCodeRepository postalCodeRepository;
+
     private final Random random = new Random();
     private final List<NameRecord> firstNames;
     private final List<String> lastNames;
-    private final List<PostalRecord> postals;
     private final List<String> phonePrefixes;
 
-    public FakeDanishPersonService() throws IOException {
+    public FakeDanishPersonService(PostalCodeRepository postalCodeRepository) throws IOException {
+        this.postalCodeRepository = postalCodeRepository;
+
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(new ClassPathResource("person-names.json").getInputStream());
 
@@ -66,27 +66,7 @@ public final class FakeDanishPersonService {
             throw new IllegalStateException("person-names.json must contain usable person names");
         }
 
-        this.postals = loadPostals();
         this.phonePrefixes = buildPhonePrefixes();
-    }
-
-    private List<PostalRecord> loadPostals() throws IOException {
-        Pattern pattern = Pattern.compile("\\('([^']+)'\\s*,\\s*'([^']+)'\\)");
-        List<PostalRecord> records = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                new ClassPathResource("addresses.sql").getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                Matcher matcher = pattern.matcher(line);
-                while (matcher.find()) {
-                    records.add(new PostalRecord(matcher.group(1), matcher.group(2)));
-                }
-            }
-        }
-        if (records.isEmpty()) {
-            throw new IllegalStateException("No postal data found in addresses.sql");
-        }
-        return records;
     }
 
     public static List<String> buildPhonePrefixes() {
@@ -159,7 +139,12 @@ public final class FakeDanishPersonService {
     }
 
     public Map<String, String> fakeAddress() {
-        PostalRecord postal = postals.get(random.nextInt(postals.size()));
+        Optional<PostalCode> postalCode = postalCodeRepository.findRandomPostalCode();
+
+        if (postalCode.isEmpty()) {
+            throw new IllegalStateException("No postal code found in the system");
+        }
+
         String street = randomLetters(5 + random.nextInt(8));
 
         String number = Integer.toString(1 + random.nextInt(999));
@@ -188,8 +173,8 @@ public final class FakeDanishPersonService {
         result.put("number", number);
         result.put("floor", floor);
         result.put("door", door);
-        result.put("postal_code", postal.postalCode());
-        result.put("town", postal.town());
+        result.put("postal_code", postalCode.get().getPostalCode());
+        result.put("town", postalCode.get().getTownName());
         return result;
     }
 
@@ -204,8 +189,7 @@ public final class FakeDanishPersonService {
 
     public Map<String, Object> fakePerson() {
         Map<String, String> base = fakeCprNameGenderDob();
-        Map<String, Object> result = new HashMap<>();
-        result.putAll(base);
+        Map<String, Object> result = new HashMap<>(base);
         result.put("address", fakeAddress());
         result.putAll(fakeMobilePhoneNumber());
         return result;
@@ -247,8 +231,5 @@ public final class FakeDanishPersonService {
     }
 
     private record NameRecord(String name, String gender) {
-    }
-
-    private record PostalRecord(String postalCode, String town) {
     }
 }
