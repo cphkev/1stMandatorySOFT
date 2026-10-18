@@ -1,9 +1,13 @@
 package com.cphkev.fakeinfo;
 
+import com.cphkev.fakeinfo.repository.PostalCodeRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -18,6 +22,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@AutoConfigureTestDatabase(
+        replace = AutoConfigureTestDatabase.Replace.NONE
+)
+@Import(MySqlTestConfiguration.class)
 class FakeInfoControllerTest {
 
     @Autowired
@@ -26,18 +34,26 @@ class FakeInfoControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private PostalCodeRepository postalCodeRepository;
+
+    @AfterEach
+    void tearDown() {
+        postalCodeRepository.saveAll(Populator.createPostalCodes());
+    }
+
     @Test
     void requiredEndpointsExist() throws Exception {
         List<String> endpoints = List.of(
-            "/api/cpr",
-            "/api/name-gender",
-            "/api/name-gender-dob",
-            "/api/cpr-name-gender",
-            "/api/cpr-name-gender-dob",
-            "/api/address",
-            "/api/mobile",
-            "/api/person",
-            "/api/persons?count=2"
+                "/api/cpr",
+                "/api/name-gender",
+                "/api/name-gender-dob",
+                "/api/cpr-name-gender",
+                "/api/cpr-name-gender-dob",
+                "/api/address",
+                "/api/mobile",
+                "/api/person",
+                "/api/persons?count=2"
         );
 
         for (String endpoint : endpoints) {
@@ -55,8 +71,8 @@ class FakeInfoControllerTest {
     void personConsistency() throws Exception {
         for (int index = 0; index < 20; index++) {
             String json = mockMvc.perform(get("/api/person"))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
 
             JsonNode person = objectMapper.readTree(json);
             String cpr = person.get("cpr").asString();
@@ -79,8 +95,8 @@ class FakeInfoControllerTest {
         List<String> allowed = FakeDanishPersonService.buildPhonePrefixes();
         for (int index = 0; index < 50; index++) {
             String json = mockMvc.perform(get("/api/mobile"))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
             String mobile = objectMapper.readTree(json).get("mobile_phone_number").asString();
             assertThat(mobile).matches("\\d{8}");
             assertThat(allowed.stream().anyMatch(mobile::startsWith)).isTrue();
