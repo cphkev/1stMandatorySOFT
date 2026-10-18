@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   verify:
-    name: Tests and static analysis
+    name: Tests, coverage, and static analysis
     runs-on: ubuntu-latest
     steps:
       - name: Check out source

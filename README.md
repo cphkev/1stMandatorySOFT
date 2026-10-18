@@ -30,7 +30,9 @@ On macOS or Linux, run:
 bash ./mvnw clean verify
 ```
 
-The Maven Wrapper downloads the configured Maven version the first time it runs. These commands run the Maven test suite, integration tests, and SpotBugs static analysis. The build fails if tests fail or SpotBugs reports findings. GitHub Actions runs the same wrapper command on pushes and pull requests.
+The Maven Wrapper downloads the configured Maven version the first time it runs. These commands run the Maven test suite, integration tests, generate a JaCoCo coverage report, and run SpotBugs static analysis. The build fails if tests fail or SpotBugs reports findings. GitHub Actions runs the same wrapper command on pushes and pull requests.
+
+After a successful `verify`, open `target/site/jacoco/index.html` to view line and branch coverage. JaCoCo currently reports coverage without enforcing a minimum percentage; a coverage threshold can be added once the test suite is more complete.
 
 Add JUnit tests under `src/test/java`. Maven automatically discovers regular test classes named `*Test.java`; integration test classes named `*IT.java` run in Maven's integration-test phase. No workflow changes are needed for those Java tests.
 
