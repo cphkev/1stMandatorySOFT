@@ -24,8 +24,8 @@ public class PersonNameConfiguration {
                 throw new IllegalStateException("person-names.json must contain a non-empty persons array");
             }
 
-            return List.copyOf(objectMapper.readerForListOf(PersonName.class)
-                    .readValue(personsNode));
+            return objectMapper.readerForListOf(PersonName.class)
+                    .readValue(personsNode);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to load person-names.json", e);
         }

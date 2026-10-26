@@ -21,7 +21,7 @@ public final class FakeDanishPersonService {
     private final List<String> phonePrefixes;
 
     public FakeDanishPersonService(List<PersonName> personNames, PostalCodeRepository postalCodeRepository) {
-        this.personNames = personNames;
+        this.personNames = List.copyOf(personNames);
         this.postalCodeRepository = postalCodeRepository;
 
         this.phonePrefixes = buildPhonePrefixes();
