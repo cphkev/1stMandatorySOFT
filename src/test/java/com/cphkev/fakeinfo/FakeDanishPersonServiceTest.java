@@ -2,12 +2,10 @@ package com.cphkev.fakeinfo;
 
 import com.cphkev.fakeinfo.model.PersonName;
 import com.cphkev.fakeinfo.model.PostalCode;
-import com.cphkev.fakeinfo.provider.PersonNameProvider;
 import com.cphkev.fakeinfo.repository.PostalCodeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -19,31 +17,28 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class FakeDanishPersonServiceTest {
 
     @Mock
-    private PersonNameProvider personNameProvider;
-
-    @Mock
     private PostalCodeRepository postalCodeRepository;
 
-    @InjectMocks
     private FakeDanishPersonService fakeDanishPersonService;
 
     @BeforeEach
     void setUp() {
-        lenient().when(personNameProvider.getAll())
-                .thenReturn(List.of(
-                        new PersonName("John", "Doe", "male"),
-                        new PersonName("Jane", "Smith", "female"),
-                        new PersonName("Alex", "Johnson", "male")
-                ));
+        List<PersonName> personNames = List.of(
+                new PersonName("John", "Doe", "male"),
+                new PersonName("Jane", "Smith", "female"),
+                new PersonName("Alex", "Johnson", "male")
+        );
 
-        lenient().when(postalCodeRepository.findRandomPostalCode())
-            .thenReturn(Optional.of(new PostalCode("1000", "Test Town")));
+        fakeDanishPersonService = new FakeDanishPersonService(
+                personNames,
+                postalCodeRepository
+        );
     }
 
     @Test
@@ -100,6 +95,9 @@ class FakeDanishPersonServiceTest {
 
     @Test // tester at adressefelterne har gyldige formater
     void generatedAddressFieldsHaveValidFormats() {
+        when(postalCodeRepository.findRandomPostalCode())
+            .thenReturn(Optional.of(new PostalCode("1000", "Test Town")));
+
         List<String> namedDoors = List.of("th", "mf", "tv");
 
         for (int index = 0; index < 100; index++) {
@@ -130,12 +128,19 @@ class FakeDanishPersonServiceTest {
             assertThat(address.get("postal_code")).isNotBlank();
             assertThat(address.get("town")).isNotBlank();
         }
+
+        verify(postalCodeRepository, times(100)).findRandomPostalCode();
     }
 
     @Test // tester at bulk-generering accepterer counts mellem 2 og 100
     void bulkGenerationAcceptsCountsFromTwoToOneHundred() {
+        when(postalCodeRepository.findRandomPostalCode())
+                .thenReturn(Optional.of(new PostalCode("1000", "Test Town")));
+
         assertThat(fakeDanishPersonService.fakePersonsBulk(2)).hasSize(2);
         assertThat(fakeDanishPersonService.fakePersonsBulk(100)).hasSize(100);
+
+        verify(postalCodeRepository, times(102)).findRandomPostalCode();
     }
 
     @Test // tester at bulk-generering afviser counts uden 2-100 intervallet
@@ -244,7 +249,12 @@ class FakeDanishPersonServiceTest {
 
     @Test // tester at genererede personer indeholder alle nødvendige informationer
     void generatedPersonContainsAllRequiredInformation() {
+        when(postalCodeRepository.findRandomPostalCode())
+            .thenReturn(Optional.of(new PostalCode("1000", "Test Town")));
+
         Map<String, Object> person = fakeDanishPersonService.fakePerson();
+
+        verify(postalCodeRepository).findRandomPostalCode();
 
         assertThat(person).containsKeys(
             "cpr",

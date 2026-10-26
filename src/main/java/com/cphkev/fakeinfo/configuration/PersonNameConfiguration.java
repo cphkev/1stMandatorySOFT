@@ -1,8 +1,9 @@
-package com.cphkev.fakeinfo.provider;
+package com.cphkev.fakeinfo.configuration;
 
 import com.cphkev.fakeinfo.model.PersonName;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -10,30 +11,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-@Component
-public class PersonNameProvider {
+@Configuration
+public class PersonNameConfiguration {
 
-    private final List<PersonName> persons;
-
-    public PersonNameProvider() {
-        ObjectMapper objectMapper = new ObjectMapper();
-
+    @Bean
+    public List<PersonName> personNames(ObjectMapper objectMapper) {
         try (InputStream input = new ClassPathResource("person-names.json").getInputStream()) {
             JsonNode root = objectMapper.readTree(input);
-            JsonNode personsNode = root.get("persons");
+            JsonNode personsNode = root != null ? root.get("persons") : null;
 
             if (personsNode == null || !personsNode.isArray() || personsNode.isEmpty()) {
                 throw new IllegalStateException("person-names.json must contain a non-empty persons array");
             }
 
-            this.persons = objectMapper.readerForListOf(PersonName.class)
-                    .readValue(personsNode);
+            return List.copyOf(objectMapper.readerForListOf(PersonName.class)
+                    .readValue(personsNode));
         } catch (IOException e) {
             throw new IllegalStateException("Failed to load person-names.json", e);
         }
-    }
-
-    public List<PersonName> getAll() {
-        return persons;
     }
 }

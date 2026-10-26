@@ -2,11 +2,9 @@ package com.cphkev.fakeinfo;
 
 import com.cphkev.fakeinfo.model.PersonName;
 import com.cphkev.fakeinfo.model.PostalCode;
-import com.cphkev.fakeinfo.provider.PersonNameProvider;
 import com.cphkev.fakeinfo.repository.PostalCodeRepository;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -16,14 +14,14 @@ public final class FakeDanishPersonService {
     private static final DateTimeFormatter CPR_DATE = DateTimeFormatter.ofPattern("ddMMyy", Locale.ROOT);
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
-    private final PersonNameProvider personNameProvider;
+    private final List<PersonName> personNames;
     private final PostalCodeRepository postalCodeRepository;
 
     private final Random random = new Random();
     private final List<String> phonePrefixes;
 
-    public FakeDanishPersonService(PersonNameProvider personNameProvider, PostalCodeRepository postalCodeRepository) throws IOException {
-        this.personNameProvider = personNameProvider;
+    public FakeDanishPersonService(List<PersonName> personNames, PostalCodeRepository postalCodeRepository) {
+        this.personNames = personNames;
         this.postalCodeRepository = postalCodeRepository;
 
         this.phonePrefixes = buildPhonePrefixes();
@@ -61,8 +59,7 @@ public final class FakeDanishPersonService {
     }
 
     public Map<String, String> fakeNameGender() {
-        List<PersonName> persons = personNameProvider.getAll();
-        PersonName person = persons.get(random.nextInt(persons.size()));
+        PersonName person = personNames.get(random.nextInt(personNames.size()));
 
         return Map.of(
                 "first_name", person.name(),
