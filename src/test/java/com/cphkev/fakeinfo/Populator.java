@@ -1,6 +1,6 @@
 package com.cphkev.fakeinfo;
 
-import com.cphkev.fakeinfo.entity.PostalCode;
+import com.cphkev.fakeinfo.model.PostalCode;
 
 import java.util.List;
 

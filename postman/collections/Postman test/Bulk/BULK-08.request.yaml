@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/persons?count=0"
+method: GET
+queryParams:
+  count: "0"
+scripts:
+  - type: afterResponse
+    code: |-
+      // Nul er under minimum på to personer
+      pm.test("BULK-08: Count 0 afvises med status 400", function () {
+          pm.response.to.have.status(400);
+      });
+    language: text/javascript
+order: 4496354439363828

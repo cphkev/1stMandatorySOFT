@@ -1,6 +1,6 @@
 package com.cphkev.fakeinfo.repository;
 
-import com.cphkev.fakeinfo.entity.PostalCode;
+import com.cphkev.fakeinfo.model.PostalCode;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

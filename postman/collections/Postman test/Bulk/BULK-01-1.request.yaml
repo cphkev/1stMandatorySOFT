@@ -1,0 +1,16 @@
+$kind: http-request
+name: BULK-01
+url: "{{baseUrl}}/api/persons?count=1"
+method: GET
+queryParams:
+  count: "1"
+scripts:
+  - type: afterResponse
+    code: |-
+      // Minimum er to personer.
+      // Derfor skal en bestilling på én person afvises.
+      pm.test("BULK-01: Count 1 afvises med status 400", function () {
+          pm.response.to.have.status(400);
+      });
+    language: text/javascript
+order: 1792322029972

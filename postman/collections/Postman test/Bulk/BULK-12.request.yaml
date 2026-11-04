@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/api/persons?count="
+method: GET
+queryParams:
+  count: ""
+scripts:
+  - type: afterResponse
+    code: |2
+            // Tom værdi er ikke et antal personer
+            pm.test("BULK-12: Tom count-værdi (count=) afvises med status 400", function () {
+                pm.response.to.have.status(400);
+            });
+       
+            // Et afvist kald må ikke returnere en liste af personer
+            pm.test("BULK-12: Svaret indeholder ikke personer", function () {
+                let body = null;
+       
+                try {
+                    body = pm.response.json();
+                } catch (error) {
+                    // Fejlsvaret er ikke JSON. Det er i orden, da formatet ikke er aftalt.
+                }
+       
+                pm.expect(Array.isArray(body)).to.equal(false);
+            });
+    language: text/javascript
+order: 4503514192401994

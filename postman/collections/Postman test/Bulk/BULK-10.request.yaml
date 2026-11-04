@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/persons?count=abc"
+method: GET
+queryParams:
+  count: abc
+scripts:
+  - type: afterResponse
+    code: |-
+      // Tekst kan ikke bruges som antal personer
+      pm.test("BULK-10: Count abc afvises med status 400", function () {
+          pm.response.to.have.status(400);
+      });
+    language: text/javascript
+order: 4503162596684898

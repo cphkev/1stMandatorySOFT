@@ -1,0 +1,137 @@
+// Tilføjes én gang på collectionens Scripts → Post-response.
+// Behold de eksisterende fælles tests og request-scripts.
+// Funktionen holder variablerne adskilt fra de andre scripts.
+(function () {
+    const path = pm.request.url.getPath();
+
+    const namePaths = [
+        "/api/name-gender",
+        "/api/name-gender-dob",
+        "/api/cpr-name-gender",
+        "/api/cpr-name-gender-dob",
+        "/api/person",
+        "/api/persons"
+    ];
+
+    const addressPaths = [
+        "/api/address",
+        "/api/person",
+        "/api/persons"
+    ];
+
+    const checkNames = namePaths.includes(path);
+    const checkAddress = addressPaths.includes(path);
+
+    // Fejlsvar har ingen personoplysninger.
+    // Requestens egne tests kontrollerer den forventede statuskode.
+    if (pm.response.code !== 200 || (!checkNames && !checkAddress)) {
+        return;
+    }
+
+    let records;
+    let expectedNames;
+    let expectedPostals;
+    let ready = false;
+
+    pm.test("Datakilder: Reference-data og svar kan læses", function () {
+        const body = pm.response.json();
+
+        if (path === "/api/persons") {
+            pm.expect(body).to.be.an("array");
+            pm.expect(body.length).to.be.above(0);
+            records = body;
+        } else {
+            pm.expect(body).to.be.an("object");
+            pm.expect(body).to.not.be.an("array");
+            records = [body];
+        }
+
+        if (checkNames) {
+            const namesText = pm.environment.get("expectedNames");
+            pm.expect(namesText, "Vælg miljøet med expectedNames").to.be.a("string");
+            expectedNames = JSON.parse(namesText);
+            pm.expect(expectedNames).to.be.an("array");
+            pm.expect(expectedNames.length).to.be.above(0);
+        }
+
+        if (checkAddress) {
+            const postalsText = pm.environment.get("expectedPostals");
+            pm.expect(postalsText, "Vælg miljøet med expectedPostals").to.be.a("string");
+            expectedPostals = JSON.parse(postalsText);
+            pm.expect(expectedPostals).to.be.an("array");
+            pm.expect(expectedPostals.length).to.be.above(0);
+        }
+
+        ready = true;
+    });
+
+    // En manglende opsætning er allerede registreret som en fejlet test.
+    if (!ready) {
+        return;
+    }
+
+    for (let index = 0; index < records.length; index++) {
+        const person = records[index];
+        const label = "Datakilder: " + path + " resultat " + (index + 1);
+
+        if (checkNames) {
+            pm.test(label + " har et fornavn og køn fra samme navnerække", function () {
+                pm.expect(person).to.be.an("object");
+                pm.expect(person.first_name).to.be.a("string");
+                pm.expect(person.gender).to.be.a("string");
+
+                let found = false;
+
+                for (const row of expectedNames) {
+                    if (row.name === person.first_name && row.gender === person.gender) {
+                        found = true;
+                        break;
+                    }
+                }
+
+                pm.expect(found, "Fornavn og køn skal findes sammen i navnefilen").to.equal(true);
+            });
+
+            pm.test(label + " har et efternavn fra navnefilen", function () {
+                pm.expect(person).to.be.an("object");
+                pm.expect(person.last_name).to.be.a("string");
+
+                let found = false;
+
+                for (const row of expectedNames) {
+                    if (row.surname === person.last_name) {
+                        found = true;
+                        break;
+                    }
+                }
+
+                pm.expect(found, "Efternavnet skal findes i navnefilen").to.equal(true);
+            });
+        }
+
+        if (checkAddress) {
+            pm.test(label + " har et postnummer og en by fra samme databasepar", function () {
+                pm.expect(person).to.be.an("object");
+
+                // Adresse-endpointet returnerer adressen direkte.
+                // Person-endpoints har den under address.
+                const address = path === "/api/address" ? person : person.address;
+
+                pm.expect(address).to.be.an("object");
+                pm.expect(address.postal_code).to.be.a("string");
+                pm.expect(address.town).to.be.a("string");
+
+                let found = false;
+
+                for (const row of expectedPostals) {
+                    if (row.postal_code === address.postal_code && row.town === address.town) {
+                        found = true;
+                        break;
+                    }
+                }
+
+                pm.expect(found, "Postnummer og by skal findes sammen i databasen").to.equal(true);
+            });
+        }
+    }
+})();

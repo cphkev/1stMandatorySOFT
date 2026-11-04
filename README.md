@@ -4,6 +4,16 @@ Java (Spring Boot) application that generates fake information for Danish person
 
 ## Run
 
+### Start the Database
+
+Before starting the application, the database must be available. Start it with:
+
+```bash
+docker compose up -d
+```
+
+### Run the Application
+
 On Windows:
 
 ```bash
