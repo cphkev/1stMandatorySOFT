@@ -132,6 +132,18 @@ class FakeDanishPersonServiceTest {
         verify(postalCodeRepository, times(100)).findRandomPostalCode();
     }
 
+    @Test
+    void fakeAddressThrowsExceptionWhenNoPostalCodes() {
+        // Mock the repository to return empty
+        when(postalCodeRepository.findRandomPostalCode())
+                .thenReturn(Optional.empty());
+
+        // Assert that the service throws the expected exception
+        assertThatThrownBy(fakeDanishPersonService::fakeAddress)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("No postal code found in the system");
+    }
+
     @Test // tester at bulk-generering accepterer counts mellem 2 og 100
     void bulkGenerationAcceptsCountsFromTwoToOneHundred() {
         when(postalCodeRepository.findRandomPostalCode())
@@ -266,5 +278,25 @@ class FakeDanishPersonServiceTest {
             "mobile_phone_number"
         );
         assertThat(person.get("address")).isInstanceOf(Map.class);
+    }
+
+    @Test
+    void fakePersonThrowsExceptionWhenNoPostalCodes() {
+        when(postalCodeRepository.findRandomPostalCode())
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(fakeDanishPersonService::fakePerson)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("No postal code found in the system");
+    }
+
+    @Test
+    void fakePersonsBulkThrowsExceptionWhenNoPostalCodes() {
+        when(postalCodeRepository.findRandomPostalCode())
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> fakeDanishPersonService.fakePersonsBulk(2))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("No postal code found in the system");
     }
 }

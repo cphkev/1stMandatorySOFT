@@ -243,6 +243,19 @@ class FakeInfoControllerTest {
     }
 
     @Test
+    void testThatGetAddressFailsWhenNoPostalCodes() throws Exception {
+        postalCodeRepository.deleteAll();
+
+        String response = mockMvc.perform(get("/api/address"))
+                .andExpect(status().isInternalServerError())
+                .andReturn()
+                .getResponse()
+                .getErrorMessage();
+
+        assertThat(response).isEqualTo("No postal code found in the system");
+    }
+
+    @Test
     void testThatGetMobileReturnsValidMobilePhoneNumber() throws Exception {
         String response = mockMvc.perform(get("/api/mobile"))
                 .andExpect(status().isOk())
@@ -326,6 +339,19 @@ class FakeInfoControllerTest {
                 );
     }
 
+    @Test
+    void testThatGetPersonFailsWhenNoPostalCodes() throws Exception {
+        postalCodeRepository.deleteAll();
+
+        String response = mockMvc.perform(get("/api/person"))
+                .andExpect(status().isInternalServerError())
+                .andReturn()
+                .getResponse()
+                .getErrorMessage();
+
+        assertThat(response).isEqualTo("No postal code found in the system");
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {2, 3, 52, 99, 100})
     void testThatGetPersonsReturnsRequestedNumberOfValidPersons(int count) throws Exception {
@@ -407,5 +433,24 @@ class FakeInfoControllerTest {
     void testThatGetPersonsRejectsInvalidCount(String count) throws Exception {
         mockMvc.perform(get("/api/persons").param("count", count))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testThatGetPersonsFailsWhenNoPostalCodes() throws Exception {
+        postalCodeRepository.deleteAll();
+
+        String response = mockMvc.perform(get("/api/persons"))
+                .andExpect(status().isInternalServerError())
+                .andReturn()
+                .getResponse()
+                .getErrorMessage();
+
+        assertThat(response).isEqualTo("No postal code found in the system");
+    }
+
+    @Test
+    void testThatGetHealthReturns200() throws Exception {
+        mockMvc.perform(get("/health"))
+                .andExpect(status().isOk());
     }
 }
