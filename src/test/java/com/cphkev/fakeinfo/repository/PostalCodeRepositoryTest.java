@@ -11,6 +11,8 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 
+import java.util.List;
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DataJpaTest
@@ -23,9 +25,11 @@ class PostalCodeRepositoryTest {
     @Autowired
     private PostalCodeRepository postalCodeRepository;
 
+    private List<PostalCode> postalCodes;
+
     @BeforeEach
     void setUp() {
-        postalCodeRepository.saveAll(Populator.createPostalCodes());
+        postalCodeRepository.saveAll(postalCodes = Populator.createPostalCodes());
     }
 
     @AfterEach
@@ -38,9 +42,6 @@ class PostalCodeRepositoryTest {
         PostalCode result = postalCodeRepository.findRandomPostalCode()
                 .orElseThrow();
 
-        assertThat(result.getPostalCode())
-                .isIn("8000", "5000", "9000");
-
-        assertThat(result.getTownName()).isNotBlank();
+        assertThat(result).isIn(postalCodes);
     }
 }
