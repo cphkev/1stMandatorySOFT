@@ -58,8 +58,10 @@ The Maven Wrapper downloads the configured Maven version the first time it runs.
 
 After a successful `verify`, open `target/site/jacoco/index.html` to view line and branch coverage. JaCoCo currently reports coverage without enforcing a minimum percentage; a coverage threshold can be added once the test suite is more complete.
 
-Add JUnit tests under `src/test/java`. Maven automatically discovers regular test classes named `*Test.java`; integration test classes named `*IT.java` run in Maven's integration-test phase. `FakeInfoUiIT` uses Playwright to exercise the browser UI. GitHub Actions installs Chromium and its Linux dependencies before running the tests.
+Add JUnit tests under `src/test/java`. Maven automatically discovers regular test classes named `*Test.java`; integration test classes named `*IT.java` run in Maven's integration-test phase. `FakeInfoUITest` uses Playwright to exercise the browser UI. GitHub Actions installs Chromium and its Linux dependencies before running the tests.
 
-The Playwright browser end-to-end tests run as part of `verify`. If you later add an API test collection in Postman, Insomnia, or another tool, add its runner to the workflow as a separate step. The project also has a Spring `MockMvc` controller test.
+The Playwright browser end-to-end tests run as part of `verify`. If you want to run the end-to-end tests locally you can change setHeadless() to true.
+
+The project also has a Spring `MockMvc` controller test.
 
 The UI is available at `http://localhost:8080/`.
