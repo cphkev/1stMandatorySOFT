@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 
+import com.cphkev.fakeinfo.repository.PostalCodeRepository;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
@@ -17,7 +19,6 @@ import com.microsoft.playwright.options.AriaRole;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-
 
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(MySqlTestConfiguration.class)
@@ -34,11 +35,14 @@ class FakeInfoUITest {
 
         private final ObjectMapper objectMapper = new ObjectMapper();
 
+        @Autowired
+        private PostalCodeRepository postalCodeRepository;
+
         @BeforeEach
         void setUp() {
-
+                postalCodeRepository.saveAll(Populator.createPostalCodes());
                 playwright = Playwright.create();
-//.setHeadless(true) if you want to run it locally with some cool ui
+                // .setHeadless(true) if you want to run it locally with some cool ui
                 browser = playwright.chromium().launch(
                                 new BrowserType.LaunchOptions().setHeadless(true));
 
@@ -49,6 +53,7 @@ class FakeInfoUITest {
 
         @AfterEach
         void tearDown() {
+                postalCodeRepository.deleteAll();
                 browser.close();
                 playwright.close();
         }
