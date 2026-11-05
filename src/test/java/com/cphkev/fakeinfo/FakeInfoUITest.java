@@ -38,9 +38,9 @@ class FakeInfoUITest {
         void setUp() {
 
                 playwright = Playwright.create();
-
+//.setHeadless(true) if you want to run it locally with some cool ui
                 browser = playwright.chromium().launch(
-                                new BrowserType.LaunchOptions().setHeadless(false));
+                                new BrowserType.LaunchOptions().setHeadless(true));
 
                 page = browser.newPage();
 
