@@ -45,7 +45,11 @@ public class FakeInfoController {
 
     @GetMapping("/api/address")
     public Map<String, String> address() {
-        return service.fakeAddress();
+        try {
+            return service.fakeAddress();
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
     }
 
     @GetMapping("/api/mobile")
@@ -55,7 +59,11 @@ public class FakeInfoController {
 
     @GetMapping("/api/person")
     public Map<String, Object> person() {
-        return service.fakePerson();
+        try {
+            return service.fakePerson();
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
     }
 
     @GetMapping("/api/persons")
@@ -64,6 +72,8 @@ public class FakeInfoController {
             return service.fakePersonsBulk(count);
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "count must be between 2 and 100");
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
