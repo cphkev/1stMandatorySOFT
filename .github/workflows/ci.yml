@@ -23,5 +23,8 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Run tests and SpotBugs
+      - name: Install Playwright Chromium and Linux dependencies
+        run: bash ./mvnw --batch-mode --no-transfer-progress -Dexec.mainClass=com.microsoft.playwright.CLI "-Dexec.args=install --with-deps chromium" exec:java
+
+      - name: Run tests, coverage, and SpotBugs
         run: bash ./mvnw --batch-mode --no-transfer-progress clean verify
