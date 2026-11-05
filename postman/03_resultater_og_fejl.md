@@ -1,104 +1,93 @@
 # Resultater og fejl
 
-## Del 1: Resultater
+## 1. Status efter rettelserne
 
-### Overblik
+Sander har efter rettelserne oplyst, at Postman-testene kører grønt uden fejl.
+Det tidligere screenshot viste 2.227 beståede assertions i én iteration, men blev
+taget før de seneste ekstra adressekontroller. Det tal bruges derfor ikke som
+assertion-antal for den seneste kørsel. Gem en ny rapport eller et screenshot til afleveringen.
 
-Vi har kørt hele collectionen i Collection Runner med 5 iterationer.
-Alle tests bestod, **undtagen BULK-12 og BULK-13** (se del 2).
+Der er ikke udført en ny testkørsel som del af denne dokumentationsopdatering.
 
-### Hvad viser testene os?
-
-| Område | Hvad testene viser |
+| Område | Hvad kontrolleres? |
 |---|---|
-| **Alle ni funktioner** | Svarer med status 200, i JSON, og med alle krævede felter udfyldt |
-| **CPR** | 10 cifre, mulig dato, sidste ciffer passer til køn, og CPR matcher fødselsdatoen (CPR-03, PERSON-01 og hver person i bulk) |
-| **Fødselsdato** | Altid en rigtig kalenderdato i formatet `ÅÅÅÅ-MM-DD` |
-| **Adresse** | Husnummer, etage og dør overholder opgavens regler. Postnummer har fire cifre |
-| **Mobilnummer** | 8 cifre og begynder på et tal fra opgavens liste |
-| **Datakilder** | Navne, efternavne og postnummer/by-par findes i facitlisten for alle personer, op til 100 ad gangen |
-| **Bulk, grænser** | 1 og 101 afvises. 2, 3, 99 og 100 giver præcis det bestilte antal personer |
-| **Bulk, ugyldigt** | 0, -1, `abc` og 2.5 afvises med status 400 |
-| **Tilfældighed** | 100 personer har forskellige CPR-numre og vejnavne. Generatoren er ikke gået i stå |
+| Alle ni funktioner | Successtatus, JSON og relevante indholdskontroller |
+| CPR | Ti cifre, mulig dato og sammenhæng med køn; sammenhæng med fødselsdato, hvor begge returneres og kontrolleres |
+| Adresse | Husnummer, etage, dør og postnummer; egne formatregler om foranstillede nuller |
+| Mobilnummer | Otte cifre og et tilladt præfiks |
+| Datakilder | Fornavn/køn-par, efternavn og postnummer/by-par findes i reference-data i relevante succesfulde svar |
+| Bulk-grænser | 1 og 101 afvises; 2, 3, 99 og 100 giver det bestilte antal |
+| Ugyldigt input | 0, -1, `abc` og 2.5 afvises med status 400 |
+| Standardværdi | BULK-12 og BULK-13 forventer status 200 og præcis 2 personer |
+| Variation | BULK-14 kræver mere end ét forskelligt CPR og mere end ét forskelligt vejnavn blandt 100 personer |
 
-**Samlet:** i alle kald, vi har kørt, overholder programmet opgavens regler, og det afviser
-ugyldige antal personer.
+En grøn kørsel viser, at de udførte assertions bestod for de genererede svar.
+Den beviser ikke, at alle mulige output eller fejlforløb er dækket.
 
-### Hvad viser testene *ikke*?
+## 2. Afklaret: BULK-12 og BULK-13
 
-| Ikke vist | Hvorfor |
+| Test | Kald | Tidligere forventning | Aftalt forventning |
+|---|---|---|---|
+| BULK-12 | `/api/persons?count=` | 400 | 200 og præcis 2 personer |
+| BULK-13 | `/api/persons` | 400 | 200 og præcis 2 personer |
+
+Ved gennemgangen den 5. november 2026 valgte Sander at beholde standardværdien 2.
+Controlleren har eksplicit `@RequestParam(defaultValue = "2")`.
+Opgaven kræver bulk på 2–100 personer, men bestemmer ikke, hvad der sker ved tomt
+eller manglende `count`. Forventningen om 400 var derfor en antagelse i testene.
+Testene er ændret til den valgte kontrakt; backend-adfærden er bevaret.
+
+De to cases holdes adskilt, fordi et tomt parameter og et udeladt parameter er
+forskellige requests. De fælles datakilde-tests og kontrollen af foranstillede
+nuller kører også på de to personlister.
+
+## 3. Ensartet kontrol af foranstillede nuller
+
+ADDRESS-01 kontrollerede allerede, at husnummer og numerisk dør ikke starter med 0.
+PERSON-01 og BULK-02, 03, 04, 05, 07, 12, 13 og 14 har nu samme kontrol.
+I bulk kontrolleres hver persons adresse.
+
+Kontrollen foretages på teksten, fordi `Number("007")` bliver til `7` og dermed
+kan bestå en almindelig intervalkontrol. Reglen afviser eksempelvis husnummer
+`007` og numerisk dør `05`. Den ændrer ikke reglerne for døre som `th` eller `c3`.
+Dette er en egen formatbeslutning, ikke et udtrykkeligt forbud i opgaven.
+
+## 4. BULK-14: variation og testnavne
+
+BULK-14 tester, at CPR-numrene ikke alle er ens, og at vejnavnene ikke alle er ens.
+Den kræver ikke, at alle 100 værdier er unikke, og den beviser ikke en bestemt
+statistisk fordeling.
+
+**Resterende navneoprydning:** Den lokale YAML-fil indeholder ved denne gennemgang
+stadig tre assertions med navnet `BULK-17`, selv om requesten hedder BULK-14.
+Den nye adressekontrol hedder allerede BULK-14. Gem rettelsen af de tre gamle
+navne i Postman, så den kommer med i projektfilerne og næste commit.
+Dette påvirker læsbarheden af resultaterne, ikke selve testbetingelserne.
+
+## 5. CI-status
+
+`.github/workflows/ci.yml` indeholder nu opstart af database og API samt kørsel af
+collectionen med Postman CLI og miljøet med reference-data. Maven-tests,
+JaCoCo og SpotBugs køres før API-testene.
+
+Workflowet starter ved push til `main`, inklusive merges, men springer over,
+hvis alle ændrede filer er `.md`-filer. Det starter ikke ved push til andre branches
+eller ved oprettelse af en pull request.
+
+**Mangler at blive bekræftet:** En grøn GitHub Actions-kørsel, hvor trinnet
+**Run Postman API tests** faktisk er kørt. Den lokale Postman-kørsel er ikke
+bevis for, at database, API og CLI også starter korrekt hos GitHub.
+Gem link eller screenshot fra den vellykkede CI-kørsel til dokumentationen.
+
+## 6. Begrænsninger og aflevering
+
+| Ikke bevist af disse API-tests | Relevant opfølgning |
 |---|---|
-| At bestemte værdier kan forekomme (husnummer 999, 29. februar, alle mobilbegyndelser) | Vi kan ikke bestille bestemte værdier. Tilfældige svar beviser det ikke. Dækkes af unit-tests |
-| At programmet faktisk slår op i databasen og navnefilen | Vi ser kun, at svarene findes i facitlisten. Undersøges i integrationstests |
-| At data er *meget* tilfældige | BULK-14 viser kun, at generatoren ikke er fastlåst |
-| Opførsel, hvis databasen eller navnefilen mangler | Kræver et særskilt testmiljø |
+| At bestemte værdier som 999, 29. februar og alle mobilpræfikser faktisk genereres | Målrettede unit-tests med styrbar tilfældighed |
+| At programmet faktisk læser database og navnefil | Integrationstests med de rigtige komponenter |
+| Statistisk tilfældighed eller fuld unikhed | BULK-14 er kun en variationskontrol |
+| Adfærd ved manglende database eller navnefil | Særskilte fejlscenarier i et egnet testmiljø |
 
----
-
-## Del 2: Tests med fejl
-
-To tests fejler. De har samme årsag.
-
-### Oversigt
-
-| Test | Kald | Vi forventede | Vi fik | Fejlede kontroller |
-|---|---|---|---|---|
-| **BULK-12** | `/api/persons?count=` (tom) | Status 400 | Status 200 og 2 personer | Status er 400. Svaret indeholder ikke personer |
-| **BULK-13** | `/api/persons` (uden `count`) | Status 400 | Status 200 og 2 personer | Status er 400. Svaret indeholder ikke personer |
-
-Alle datakilde-tests bestod i de to svar. Dataene i de 2 personer er altså gyldige.
-
-### Hvad er fejlen?
-
-Testen forventer, at et tomt eller manglende antal afvises. Programmet afviser ikke, men leverer
-**2 personer**.
-
-### Hvorfor kommer den?
-
-Programmet bruger sandsynligvis **2 som standardværdi**, når `count` mangler eller er tom.
-Det er en rimelig løsning, fordi 2 ligger inden for det tilladte.
-
-Opgaven siger ikke, hvad der skal ske uden `count`. Forventningen om 400 var vores egen antagelse,
-og den er ikke afgjort af gruppen. Vores tidligere udkast til testplan forventede faktisk
-standardværdien 2 med status 200 ("skal bekræftes").
-
-Så der er to mulige forklaringer:
-
-- **A)** Standardværdien er et bevidst valg. Så er **testens forventning forkert**.
-- **B)** Programmet burde have afvist kaldet. Så er der en **rigtig fejl i programmet**.
-
-Bemærk: i Postman er BULK-12 tom værdi og BULK-13 udeladt. I det tidligere udkast var rækkefølgen omvendt.
-
-### Hvad skal der gøres?
-
-**Trin 1. Spørg gruppen (backend-ansvarlig):** *"Er det med vilje, at tom eller manglende `count`
-giver 2 personer?"*
-
-**Trin 2a. Hvis ja (standardværdi 2):** ret testene, så de forventer det. Erstat koden i BULK-12
-(skift navnet til BULK-13 i den anden):
-
-```javascript
-// Tom count bruger standardværdien 2 (aftalt adfærd)
-pm.test("BULK-12: Tom count giver standardværdien 2", function () {
-    pm.response.to.have.status(200);
-
-    const body = pm.response.json();
-
-    pm.expect(body).to.be.an("array");
-    pm.expect(body.length).to.equal(2);
-});
-```
-
-**Trin 2b. Hvis nej (skulle afvises):** fejlen skal rettes i programmet, så `count` er påkrævet og
-skal være et helt tal fra 2 til 100, ellers status 400. Testene **ændres ikke** og er røde, til
-rettelsen er lavet.
-
-**Trin 3. Skriv beslutningen ned** i testplanen: hvad blev besluttet, af hvem og hvornår.
-
-**Trin 4. Kør hele collectionen igen**, så BULK-12 og 13 er grønne.
-
-**Tjek også:** åbn Postman Console og se, at BULK-12 faktisk sender `?count=`. Hvis den tomme
-parameter er droppet, tester den i virkeligheden BULK-13.
-
-**Tidsramme:** afleveringen er 19. oktober kl. 23:59. Hvis røde tests skal med i afleveringen,
-så beskriv dem som kendt fejl og forklar, hvorfor de er røde.
+**Afleveringsfrist ifølge opgavebeskrivelsen: 9. november 2026 kl. 23.59.**
+Black-box-testdesignet i fil 01 og 02 skal indgå i den PDF, opgaven kræver.
+Markdown-filerne er arbejdsgrundlaget og erstatter ikke PDF-leverancen.

@@ -237,5 +237,29 @@ scripts:
               });
           }
       }
+
+      pm.test("BULK-02: Alle adresser er uden foranstillede nuller", function () {
+          const persons = pm.response.json();
+
+          pm.expect(persons).to.be.an("array");
+
+          persons.forEach(function (person, index) {
+              const address = person.address;
+              const label = "Person " + (index + 1);
+
+              pm.expect(address.number, label + ": husnummer")
+                  .to.be.a("string");
+              pm.expect(address.number, label + ": husnummer")
+                  .to.match(/^[1-9]/);
+
+              pm.expect(address.door, label + ": dør")
+                  .to.be.a("string");
+
+              if (/^[0-9]+$/.test(address.door)) {
+                  pm.expect(address.door, label + ": numerisk dør")
+                      .to.match(/^[1-9]/);
+              }
+          });
+      });
     language: text/javascript
 order: 1856192034214650

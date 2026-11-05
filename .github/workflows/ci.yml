@@ -2,16 +2,20 @@ name: Continuous testing
 
 on:
   push:
-  pull_request:
-  workflow_dispatch:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
 
 permissions:
   contents: read
 
 jobs:
   verify:
-    name: Tests, coverage, and static analysis
+    name: Java tests, static analysis, and Postman
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
       - name: Check out source
         uses: actions/checkout@v6
@@ -23,8 +27,63 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Install Playwright Chromium and Linux dependencies
-        run: bash ./mvnw --batch-mode --no-transfer-progress -Dexec.mainClass=com.microsoft.playwright.CLI "-Dexec.args=install --with-deps chromium" exec:java
-
-      - name: Run tests, coverage, and SpotBugs
+      - name: Run tests and SpotBugs
         run: bash ./mvnw --batch-mode --no-transfer-progress clean verify
+
+      - name: Install Postman CLI
+        run: |
+          curl -fsSL https://dl-cli.pstmn.io/install/unix.sh \
+            -o /tmp/install-postman.sh
+          sh /tmp/install-postman.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Start database and wait until ready
+        run: |
+          docker compose up -d db
+
+          for attempt in {1..60}; do
+            if docker compose exec -T db mysql \
+              --protocol=TCP -h 127.0.0.1 -uroot \
+              -D addresses -e "SELECT 1" >/dev/null 2>&1; then
+              echo "Database is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Database did not become ready"
+          docker compose logs db
+          exit 1
+
+      - name: Start API and wait until ready
+        run: |
+          nohup java -jar target/fakeinfo-0.0.1-SNAPSHOT.jar \
+            > api.log 2>&1 &
+
+          for attempt in {1..60}; do
+            if curl --fail --silent --max-time 2 \
+              http://localhost:8080/health; then
+              echo "API is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "API did not become ready"
+          cat api.log
+          exit 1
+
+      - name: Run Postman API tests
+        run: |
+          postman collection run "postman/collections/Postman test" \
+            --environment "postman/environments/FakeInfo - Local med testdata.environment.yaml"
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          cat api.log || true
+          docker compose logs db
+
+      - name: Stop database
+        if: always()
+        run: docker compose down

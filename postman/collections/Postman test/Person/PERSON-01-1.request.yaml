@@ -303,5 +303,18 @@ scripts:
           pm.expect(address.town).to.be.a("string");
           pm.expect(address.town.trim().length).to.be.above(0);
       });
+
+      pm.test("PERSON-01: Husnummer og numerisk dør har ingen foranstillet nul", function () {
+          const address = pm.response.json().address;
+
+          pm.expect(address.number).to.be.a("string");
+          pm.expect(address.number).to.match(/^[1-9]/);
+
+          pm.expect(address.door).to.be.a("string");
+
+          if (/^[0-9]+$/.test(address.door)) {
+              pm.expect(address.door).to.match(/^[1-9]/);
+          }
+      });
     language: text/javascript
 order: 1792321911451
