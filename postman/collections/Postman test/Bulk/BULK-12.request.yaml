@@ -5,23 +5,40 @@ queryParams:
   count: ""
 scripts:
   - type: afterResponse
-    code: |2
-            // Tom værdi er ikke et antal personer
-            pm.test("BULK-12: Tom count-værdi (count=) afvises med status 400", function () {
-                pm.response.to.have.status(400);
-            });
-       
-            // Et afvist kald må ikke returnere en liste af personer
-            pm.test("BULK-12: Svaret indeholder ikke personer", function () {
-                let body = null;
-       
-                try {
-                    body = pm.response.json();
-                } catch (error) {
-                    // Fejlsvaret er ikke JSON. Det er i orden, da formatet ikke er aftalt.
-                }
-       
-                pm.expect(Array.isArray(body)).to.equal(false);
-            });
+    code: |-
+      pm.test("BULK-12: Tom count giver status 200", function () {
+          pm.response.to.have.status(200);
+      });
+
+      pm.test("BULK-12: Tom count giver præcis 2 personer", function () {
+          const body = pm.response.json();
+
+          pm.expect(body).to.be.an("array");
+          pm.expect(body.length).to.equal(2);
+      });
+
+      pm.test("BULK-12: Alle adresser er uden foranstillede nuller", function () {
+          const persons = pm.response.json();
+
+          pm.expect(persons).to.be.an("array");
+
+          persons.forEach(function (person, index) {
+              const address = person.address;
+              const label = "Person " + (index + 1);
+
+              pm.expect(address.number, label + ": husnummer")
+                  .to.be.a("string");
+              pm.expect(address.number, label + ": husnummer")
+                  .to.match(/^[1-9]/);
+
+              pm.expect(address.door, label + ": dør")
+                  .to.be.a("string");
+
+              if (/^[0-9]+$/.test(address.door)) {
+                  pm.expect(address.door, label + ": numerisk dør")
+                      .to.match(/^[1-9]/);
+              }
+          });
+      });
     language: text/javascript
 order: 4503514192401994

@@ -28,7 +28,7 @@ stedet for `>=`, bliver præcis 2 afvist, men 3 går igennem. Det finder man kun
 | Over 100 | 101 | 400 |
 | Decimaltal | 2.5 | 400 |
 | Ikke et tal | abc | 400 |
-| Tom eller udeladt | `count=` / ingen `count` | Afklares (se fil 03) |
+| Tom eller udeladt | `count=` / ingen `count` | 200, præcis 2 personer (valgt standardværdi) |
 
 ## Grænseværdier
 
@@ -61,9 +61,9 @@ Det giver de seks tal **1, 2, 3, 99, 100, 101**.
 | BULK-09 | -1 | 400 | Gruppe: under 2 |
 | BULK-10 | abc | 400 | Gruppe: ikke et tal |
 | BULK-11 | 2.5 | 400 | Gruppe: decimaltal. Må ikke bare afrundes |
-| BULK-12 | tom | afklares | Erfaringsbaseret |
-| BULK-13 | udeladt | afklares | Erfaringsbaseret |
-| BULK-14 | 100 | 200 | Erfaringsbaseret: tilfældighed |
+| BULK-12 | tom | 200, 2 personer | Erfaringsbaseret: standardværdi |
+| BULK-13 | udeladt | 200, 2 personer | Erfaringsbaseret: standardværdi |
+| BULK-14 | 100 | 200, 100 personer | Erfaringsbaseret: variation |
 
 ## Hvorfor ikke alle tal fra 2 til 100?
 
@@ -72,13 +72,25 @@ lille for, at 37 ikke gør. Pointen er **få tests, der finder de fleste fejl**.
 
 ## Hvad tjekker vi i et gyldigt svar?
 
-I BULK-02 til 07 kontrolleres:
+I BULK-02, BULK-03, BULK-04, BULK-05 og BULK-07 kontrolleres:
 
 1. Status 200.
 2. Svaret er en liste.
 3. Listen har **præcis** det bestilte antal personer.
 4. Hver person har alle felter udfyldt.
 5. Hver person har gyldigt CPR og køn, dato der matcher CPR, gyldig adresse og gyldigt mobilnummer.
+
+Husnummer og numerisk dør kontrolleres desuden for foranstillede nuller hos hver person.
+
+BULK-12 og BULK-13 kontrollerer status 200 og præcis 2 personer ved henholdsvis
+tomt og manglende `count`. Begge har kontrol af foranstillede nuller og de fælles
+datakilde-tests. De har ikke alle de formatkontroller, som BULK-02, 03, 04, 05 og 07 har.
+Standardværdien er vores valgte kontrakt; den er ikke fastlagt i opgaven.
+
+BULK-14 kontrollerer status 200, præcis 100 personer, mere end ét forskelligt CPR
+og mere end ét forskelligt vejnavn. Den kontrollerer også foranstillede nuller og
+bruger de fælles datakilde-tests. Den kræver ikke 100 unikke personer og beviser
+ikke statistisk tilfældighed.
 
 ## Hvad dækker vi ikke?
 

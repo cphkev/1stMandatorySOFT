@@ -45,11 +45,11 @@ Opgaven kræver ni funktioner, og hver er skrevet for sig. Derfor tester vi dem 
 | BULK-09 | -1 | 400 | Negativt tal |
 | BULK-10 | `abc` | 400 | Tekst |
 | BULK-11 | 2.5 | 400 | Decimaltal |
-| BULK-12 | tom (`count=`) | afklares | Erfaringsbaseret case |
-| BULK-13 | udeladt | afklares | Erfaringsbaseret case |
-| BULK-14 | 100 | 200 | Tilfældighed: data må ikke være ens |
+| BULK-12 | tom (`count=`) | 200, 2 personer | Erfaringsbaseret: standardværdi |
+| BULK-13 | udeladt | 200, 2 personer | Erfaringsbaseret: standardværdi |
+| BULK-14 | 100 | 200, 100 personer | Variation: mere end ét CPR og mere end ét vejnavn |
 
-I de gyldige bulk-kald (BULK-02 til 07) tjekker vi **hver eneste person**, ikke kun den første.
+I BULK-02, BULK-03, BULK-04, BULK-05 og BULK-07 tjekker vi **hver eneste person**, ikke kun den første.
 En fejl kan gemme sig i person 73 af 100.
 
 ### Fælles tests (kører automatisk)
@@ -75,9 +75,10 @@ Nogle ting er ikke afgjort af opgaven. Dem har vi valgt selv og skrevet ned som 
 | Valg | Hvad vi har besluttet |
 |---|---|
 | Svarformat | JSON, felter på engelsk, værdier som tekst, dato som `ÅÅÅÅ-MM-DD` |
-| Fejl | Ugyldigt `count` giver status 400 |
+| Fejl | Angivne antal uden for 2–100 samt tekst og decimaltal giver status 400 |
+| Standardværdi | Tomt eller manglende `count` giver status 200 og præcis 2 personer. Dette er vores valg, ikke et udtrykkeligt opgavekrav |
 | Vejnavn | Kun bogstaver (også æ, ø, å) |
-| Husnummer og dør | Ingen foranstillede nuller |
+| Husnummer og numerisk dør | Ingen foranstillede nuller. Dette er vores egen formatregel |
 
 ### Trin 2: Black-box på det, vi selv kan sende (bulk)
 
@@ -124,7 +125,7 @@ hvis programmet fejler.
 
 Her bruger vi erfaring med, hvad der plejer at gå galt:
 
-- **BULK-12 og 13:** hvad sker der med et tomt eller manglende `count`? Opgaven siger ikke noget.
+- **BULK-12 og 13:** tomt og manglende `count` testes hver for sig. Vi har valgt standardværdien 2; opgaven fastlægger ikke denne adfærd.
 - **BULK-14:** kan generatoren være gået i stå og give den samme person igen og igen?
 - **Datakilder:** kommer værdierne fra de rigtige filer og ikke bare fra en tilfældig tekst?
 
@@ -152,6 +153,10 @@ Her bruger vi erfaring med, hvad der plejer at gå galt:
 | Mobil begyndelse | Står på opgavens liste | Fx `10…` eller `99…` |
 
 ---
+
+Kontrollen af foranstillede nuller findes i ADDRESS-01, PERSON-01 og
+BULK-02, 03, 04, 05, 07, 12, 13 og 14. I bulk kontrolleres hver persons adresse.
+Reglen gælder husnummer og rent numerisk dør, ikke cifrene i eksempelvis `c03`.
 
 ## 4. Datakilder: hvorfor og hvordan
 
@@ -184,7 +189,7 @@ Scriptet springer over, hvis svaret ikke er status 200. Fejlsvar indeholder inge
 
 ### Sådan bruges det
 
-1. Importér environment-filen i Postman.
+1. Brug projektets lokale collection og miljø i Postman Local View. JSON-miljøet i `reference-data` er et alternativ til import.
 2. Vælg miljøet **FakeInfo - Local med testdata**.
 3. Tjek, at `baseUrl` passer (nu `http://localhost:8080`).
 4. Scriptet ligger i collectionens Post-response.
@@ -193,10 +198,33 @@ Scriptet springer over, hvis svaret ikke er status 200. Fejlsvar indeholder inge
 Hvis miljøet ikke er valgt, fejler testen *"Datakilder: Reference-data og svar kan læses"*
 med beskeden "Vælg miljøet med expectedNames". Det er så en opsætningsfejl, ikke en programfejl.
 
-I CI med Newman skal environment-filen med:
+## 5. Automatisk API-test i CI
 
-```
-newman run collection.json -e FakeInfo-reference.postman_environment.json
+Collectionen ligger som YAML-filer i `postman/collections/Postman test`.
+Der kræves ingen JSON-eksport til den nuværende CI-opsætning.
+Miljøet `postman/environments/FakeInfo - Local med testdata.environment.yaml`
+indeholder `baseUrl` og reference-data.
+
+Fra projektets rod bruges denne kommando, når API og database er startet:
+
+```bash
+postman collection run "postman/collections/Postman test" \
+  --environment "postman/environments/FakeInfo - Local med testdata.environment.yaml"
 ```
 
-(Kommandoen er et forslag og er ikke kørt endnu. Tjek filnavnet.)
+Workflowet i `.github/workflows/ci.yml` er konfigureret til at:
+
+1. Køre Maven-tests, JaCoCo og SpotBugs med `clean verify`.
+2. Installere Postman CLI.
+3. Starte databasen med Docker Compose og vente på, at den svarer.
+4. Starte det byggede API og vente på et vellykket svar fra `/health`.
+5. Køre collectionen med reference-miljøet. Testfejl skal få jobbet til at fejle.
+6. Vise logs ved fejl og stoppe databasen efter kørslen.
+
+Workflowet starter kun ved push til `main`, inklusive merge til `main`.
+Ændringer, som udelukkende rammer `.md`-filer, springes over.
+Der er ingen pull-request-trigger eller manuel `workflow_dispatch` i den nuværende fil.
+
+**Verifikation:** Konfigurationen er tilføjet. En vellykket GitHub Actions-kørsel
+med trinnet **Run Postman API tests** er endnu ikke dokumenteret her.
+En grøn lokal Postman-kørsel beviser ikke, at CI-kørslen virker.
